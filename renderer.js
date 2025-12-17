@@ -5,8 +5,10 @@
 const SPRITE_CONFIG = {
   src: './assets/cat_idle.png', // Path to sprite sheet
   frameCount: 4, // Number of frames in the sprite sheet (horizontal)
-  fps: 8, // Animation speed in frames per second
+  fps: 8, // Animation speed in frames per second (normal)
+  fpsExcited: 24, // Animation speed when input detected (excited)
   scale: 1.5, // Scale multiplier for the sprite
+  excitedDuration: 200, // How long to stay excited (ms)
 };
 
 // ============================================
@@ -24,8 +26,11 @@ class SpriteAnimator {
     this.currentFrame = 0;
     this.lastFrameTime = 0;
     this.frameDuration = 1000 / config.fps; // ms per frame
+    this.baseFrameDuration = 1000 / config.fps;
+    this.excitedFrameDuration = 1000 / config.fpsExcited;
 
     this.isLoaded = false;
+    this.excitedTimeout = null;
   }
 
   /**
@@ -61,10 +66,31 @@ class SpriteAnimator {
   }
 
   /**
+   * Temporarily speed up animation when input is detected
+   */
+  triggerExcited() {
+    // Switch to excited (faster) speed
+    this.frameDuration = this.excitedFrameDuration;
+
+    // Clear any existing timeout
+    if (this.excitedTimeout) {
+      clearTimeout(this.excitedTimeout);
+    }
+
+    // Reset to normal speed after duration
+    this.excitedTimeout = setTimeout(() => {
+      this.frameDuration = this.baseFrameDuration;
+      this.excitedTimeout = null;
+    }, this.config.excitedDuration);
+  }
+
+  /**
    * Draw the current frame to the canvas
    */
   drawFrame() {
-    if (!this.isLoaded) {return;}
+    if (!this.isLoaded) {
+      return;
+    }
 
     // Clear canvas (important for transparency)
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -92,7 +118,9 @@ class SpriteAnimator {
    * @param {number} timestamp - Current timestamp from requestAnimationFrame
    */
   update(timestamp) {
-    if (!this.isLoaded) {return;}
+    if (!this.isLoaded) {
+      return;
+    }
 
     // Check if enough time has passed for next frame
     const elapsed = timestamp - this.lastFrameTime;
@@ -147,6 +175,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     await animator.load();
     animator.start();
     console.log('🥁 Kika sprite overlay initialized');
+
+    // Listen for global input events from main process
+    if (window.electronAPI?.onInputEvent) {
+      window.electronAPI.onInputEvent((data) => {
+        console.log(`🎹 Input #${data.count}: ${data.type}`);
+
+        // Trigger excited animation
+        animator.triggerExcited();
+      });
+      console.log('📡 Listening for global input events');
+    }
   } catch (error) {
     console.error('Failed to initialize sprite animation:', error);
 

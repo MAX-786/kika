@@ -19,12 +19,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^9.16.0",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.8",
     "eslint": "^9.16.0",
-    "prettier": "^3.4.2",
-    "@eslint/js": "^9.16.0",
-    "globals": "^15.13.0"
+    "globals": "^15.13.0",
+    "prettier": "^3.4.2"
   },
   "build": {
     "appId": "com.example.kika",
@@ -38,5 +38,8 @@
     "linux": {
       "target": "AppImage"
     }
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.4"
   }
 }

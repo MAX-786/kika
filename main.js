@@ -1,8 +1,15 @@
 const { app, BrowserWindow, screen, Menu } = require('electron');
 const path = require('node:path');
+const { uIOhook, UiohookKey } = require('uiohook-napi');
 
 // Determine if we're in production mode
 const isProd = app.isPackaged;
+
+// ============================================
+// GLOBAL INPUT COUNTER
+// ============================================
+let totalInputs = 0;
+let mainWindow = null;
 
 /**
  * Platform-specific click-through configuration
@@ -51,6 +58,65 @@ function setClickThrough(window, clickThrough) {
 }
 
 /**
+ * Send input event to renderer
+ * @param {string} type - 'keypress' or 'click'
+ */
+function notifyRenderer(type) {
+  totalInputs++;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('input-event', {
+      type,
+      count: totalInputs,
+      timestamp: Date.now(),
+    });
+  }
+}
+
+/**
+ * Initialize global input hooks using uiohook-napi
+ * Works even when Electron window is unfocused
+ */
+function initGlobalInputHooks() {
+  // Listen for keyboard events
+  uIOhook.on('keydown', (event) => {
+    // Ignore modifier keys alone to reduce noise
+    const modifierKeys = [
+      UiohookKey.Shift,
+      UiohookKey.ShiftRight,
+      UiohookKey.Ctrl,
+      UiohookKey.CtrlRight,
+      UiohookKey.Alt,
+      UiohookKey.AltRight,
+      UiohookKey.Meta,
+      UiohookKey.MetaRight,
+    ];
+
+    if (!modifierKeys.includes(event.keycode)) {
+      notifyRenderer('keypress');
+    }
+  });
+
+  // Listen for mouse click events
+  uIOhook.on('mousedown', () => {
+    notifyRenderer('click');
+  });
+
+  // Start the hook
+  // IMPORTANT: On macOS, the app must have Accessibility permissions
+  // System Preferences > Security & Privacy > Privacy > Accessibility
+  try {
+    uIOhook.start();
+    console.log('🎮 Global input hooks started');
+  } catch (error) {
+    console.error('Failed to start global input hooks:', error);
+    console.error(
+      '⚠️  On macOS, ensure Accessibility permissions are granted in System Preferences'
+    );
+  }
+}
+
+/**
  * Creates the main overlay window with transparency and always-on-top behavior
  */
 function createOverlayWindow() {
@@ -69,7 +135,7 @@ function createOverlayWindow() {
   const platform = process.platform;
   const config = platformConfig[platform] || platformConfig.linux;
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
     x,
@@ -128,6 +194,9 @@ function createOverlayWindow() {
 app.whenReady().then(() => {
   createOverlayWindow();
 
+  // Initialize global input hooks after window is ready
+  initGlobalInputHooks();
+
   // macOS: Re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -140,5 +209,15 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Clean up hooks on quit
+app.on('will-quit', () => {
+  try {
+    uIOhook.stop();
+    console.log('🛑 Global input hooks stopped');
+  } catch {
+    // Ignore errors during cleanup
   }
 });

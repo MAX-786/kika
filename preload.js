@@ -1,10 +1,18 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Add your IPC methods here as needed
-  // Example:
-  // sendMessage: (channel, data) => ipcRenderer.send(channel, data),
-  // onMessage: (channel, callback) => ipcRenderer.on(channel, callback),
   platform: process.platform,
+
+  // Listen for global input events from main process
+  onInputEvent: (callback) => {
+    ipcRenderer.on('input-event', (_event, data) => {
+      callback(data);
+    });
+  },
+
+  // Remove input event listener
+  removeInputEventListener: () => {
+    ipcRenderer.removeAllListeners('input-event');
+  },
 });
