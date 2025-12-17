@@ -222,6 +222,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       console.log('📡 Listening for global input events');
     }
+
+    // ============================================
+    // SETTINGS ICON HOVER LOGIC
+    // Shows after 1s hover, clickable even in click-through mode
+    // ============================================
+    initSettingsHover();
   } catch (error) {
     console.error('Failed to initialize animations:', error);
 
@@ -233,3 +239,105 @@ document.addEventListener('DOMContentLoaded', async () => {
     ctx.fillText(`Load failed: ${error.message}`, 10, 30);
   }
 });
+
+// ============================================
+// SETTINGS ICON HOVER SYSTEM
+// ============================================
+const HOVER_DELAY_MS = 500;
+let hoverTimer = null;
+let isSettingsVisible = false;
+let isOverSettingsBtn = false;
+
+function initSettingsHover() {
+  const settingsBtn = document.getElementById('settings-btn');
+  if (!settingsBtn) {
+    console.warn('Settings button not found');
+    return;
+  }
+
+  // Track mouse movement over overlay (works with forward: true)
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseleave', handleMouseLeave);
+
+  // Settings button mouse events
+  settingsBtn.addEventListener('mouseenter', handleSettingsBtnEnter);
+  settingsBtn.addEventListener('mouseleave', handleSettingsBtnLeave);
+  settingsBtn.addEventListener('click', handleSettingsClick);
+
+  console.log('⚙️ Settings hover system initialized');
+}
+
+function handleMouseMove() {
+  // User is hovering over the overlay window
+  if (!hoverTimer && !isSettingsVisible) {
+    hoverTimer = setTimeout(() => {
+      showSettingsIcon();
+    }, HOVER_DELAY_MS);
+  }
+}
+
+function handleMouseLeave() {
+  // User left the overlay window
+  clearTimeout(hoverTimer);
+  hoverTimer = null;
+
+  // Hide settings icon if not actively over it
+  if (!isOverSettingsBtn) {
+    hideSettingsIcon();
+  }
+}
+
+function handleSettingsBtnEnter() {
+  isOverSettingsBtn = true;
+  
+  // Disable click-through so button is clickable
+  if (window.electronAPI?.disableClickThrough) {
+    window.electronAPI.disableClickThrough();
+    console.log('🖱️ Click-through disabled for settings button');
+  }
+}
+
+function handleSettingsBtnLeave() {
+  isOverSettingsBtn = false;
+  
+  // Re-enable click-through
+  if (window.electronAPI?.enableClickThrough) {
+    window.electronAPI.enableClickThrough();
+    console.log('🖱️ Click-through re-enabled');
+  }
+
+  // Start hide timer
+  hideSettingsIcon();
+}
+
+function handleSettingsClick() {
+  console.log('⚙️ Settings button clicked');
+  
+  // Open settings window
+  if (window.electronAPI?.showSettings) {
+    window.electronAPI.showSettings();
+  }
+}
+
+function showSettingsIcon() {
+  const settingsBtn = document.getElementById('settings-btn');
+  if (!settingsBtn || isSettingsVisible) {
+    return;
+  }
+
+  settingsBtn.classList.add('visible');
+  isSettingsVisible = true;
+  console.log('⚙️ Settings icon visible');
+}
+
+function hideSettingsIcon() {
+  const settingsBtn = document.getElementById('settings-btn');
+  if (!settingsBtn || !isSettingsVisible) {
+    return;
+  }
+
+  settingsBtn.classList.remove('visible');
+  isSettingsVisible = false;
+  hoverTimer = null;
+  console.log('⚙️ Settings icon hidden');
+}

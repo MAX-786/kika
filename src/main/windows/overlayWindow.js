@@ -127,9 +127,34 @@ function repositionOverlay(settings = DEFAULT_SETTINGS) {
   overlayWindow.setSize(windowWidth, windowHeight);
 }
 
+/**
+ * Enable click-through on overlay (clicks pass through to desktop)
+ * Uses forward: true on macOS to still receive mouse events for hover detection
+ */
+function enableOverlayClickThrough() {
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
+    return;
+  }
+  const platform = process.platform;
+  const config = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.linux;
+  overlayWindow.setIgnoreMouseEvents(true, { forward: config.supportsForward });
+}
+
+/**
+ * Disable click-through on overlay (overlay captures clicks)
+ */
+function disableOverlayClickThrough() {
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
+    return;
+  }
+  overlayWindow.setIgnoreMouseEvents(false);
+}
+
 module.exports = {
   createOverlayWindow,
   getOverlayWindow,
   setClickThrough,
   repositionOverlay,
+  enableOverlayClickThrough,
+  disableOverlayClickThrough,
 };

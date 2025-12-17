@@ -24,4 +24,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showSettings: () => {
     ipcRenderer.send('show-settings-window');
   },
+
+  // Enable click-through (clicks pass through to desktop)
+  enableClickThrough: () => {
+    ipcRenderer.send('overlay:enable-click-through');
+  },
+
+  // Disable click-through (overlay captures clicks)
+  disableClickThrough: () => {
+    ipcRenderer.send('overlay:disable-click-through');
+  },
 });

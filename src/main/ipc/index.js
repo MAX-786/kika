@@ -5,7 +5,12 @@
 
 const { ipcMain } = require('electron');
 const { uIOhook, UiohookKey } = require('uiohook-napi');
-const { getOverlayWindow, setClickThrough } = require('../windows/overlayWindow');
+const {
+  getOverlayWindow,
+  setClickThrough,
+  enableOverlayClickThrough,
+  disableOverlayClickThrough,
+} = require('../windows/overlayWindow');
 const { showSettingsWindow, closeSettingsWindow } = require('../windows/settingsWindow');
 const { loadSettings, saveSettings, resetSettings } = require('../../shared/settingsStore');
 const { DEFAULT_SETTINGS } = require('../../shared/defaultSettings');
@@ -130,6 +135,15 @@ function registerIPCHandlers() {
 
   ipcMain.on('close-settings-window', () => {
     closeSettingsWindow();
+  });
+
+  // Overlay click-through handlers
+  ipcMain.on('overlay:enable-click-through', () => {
+    enableOverlayClickThrough();
+  });
+
+  ipcMain.on('overlay:disable-click-through', () => {
+    disableOverlayClickThrough();
   });
 
   // Input count reset
