@@ -18,8 +18,8 @@ function createSettingsWindow() {
   }
 
   settingsWindow = new BrowserWindow({
-    width: 400,
-    height: 500,
+    width: 420,
+    height: 520,
     title: 'Kika Settings',
     resizable: false,
     minimizable: false,

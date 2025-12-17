@@ -21,8 +21,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Open settings window
-  showSettings: () => {
-    ipcRenderer.send('show-settings-window');
+  openSettings: () => {
+    ipcRenderer.send('settings:open');
   },
 
   // Enable click-through (clicks pass through to desktop)
@@ -33,5 +33,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Disable click-through (overlay captures clicks)
   disableClickThrough: () => {
     ipcRenderer.send('overlay:disable-click-through');
+  },
+
+  // Get all settings
+  getSettings: () => {
+    return ipcRenderer.invoke('settings:getAll');
+  },
+
+  // Update settings (partial merge)
+  updateSettings: (partialSettings) => {
+    return ipcRenderer.invoke('settings:update', partialSettings);
+  },
+
+  // Listen for settings changes from main process
+  onSettingsChanged: (callback) => {
+    ipcRenderer.on('settings:changed', (_event, settings) => {
+      callback(settings);
+    });
+  },
+
+  // Remove settings change listener
+  removeSettingsChangedListener: () => {
+    ipcRenderer.removeAllListeners('settings:changed');
   },
 });

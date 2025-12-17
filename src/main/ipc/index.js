@@ -12,7 +12,12 @@ const {
   disableOverlayClickThrough,
 } = require('../windows/overlayWindow');
 const { showSettingsWindow, closeSettingsWindow } = require('../windows/settingsWindow');
-const { loadSettings, saveSettings, resetSettings } = require('../../shared/settingsStore');
+const {
+  getSettings,
+  saveSettings,
+  updateSettings,
+  resetSettings,
+} = require('../../shared/settingsStore');
 const { DEFAULT_SETTINGS } = require('../../shared/defaultSettings');
 
 let totalInputs = 0;
@@ -107,29 +112,60 @@ function stopGlobalInputHooks() {
  * Register all IPC handlers
  */
 function registerIPCHandlers() {
-  // Settings handlers
+  // Settings handlers (new pattern)
+  ipcMain.handle('settings:getAll', () => {
+    return getSettings();
+  });
+
+  ipcMain.handle('settings:update', (_event, partialSettings) => {
+    const updatedSettings = updateSettings(partialSettings);
+
+    // Broadcast settings:changed to overlay renderer
+    const overlayWindow = getOverlayWindow();
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.webContents.send('settings:changed', updatedSettings);
+
+      // Apply click-through immediately
+      setClickThrough(overlayWindow, updatedSettings.clickThroughEnabled);
+    }
+
+    return updatedSettings;
+  });
+
+  // Legacy handlers (for backwards compatibility)
   ipcMain.handle('get-settings', () => {
-    return loadSettings();
+    return getSettings();
   });
 
   ipcMain.handle('save-settings', (_event, settings) => {
     const success = saveSettings(settings);
     if (success) {
-      // Apply relevant settings immediately
       const overlayWindow = getOverlayWindow();
       if (overlayWindow && !overlayWindow.isDestroyed()) {
-        setClickThrough(overlayWindow, settings.clickThrough?.enabled ?? true);
+        setClickThrough(overlayWindow, settings.clickThroughEnabled ?? true);
       }
     }
     return success;
   });
 
   ipcMain.handle('reset-settings', () => {
-    return resetSettings();
+    const settings = resetSettings();
+    
+    // Broadcast reset to overlay
+    const overlayWindow = getOverlayWindow();
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.webContents.send('settings:changed', settings);
+    }
+    
+    return settings;
   });
 
   // Settings window handlers
   ipcMain.on('show-settings-window', () => {
+    showSettingsWindow();
+  });
+
+  ipcMain.on('settings:open', () => {
     showSettingsWindow();
   });
 

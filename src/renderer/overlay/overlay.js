@@ -224,8 +224,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ============================================
+    // SETTINGS INITIALIZATION
+    // Load settings on startup and listen for changes
+    // ============================================
+    await initSettings(stateMachine);
+
+    // ============================================
     // SETTINGS ICON HOVER LOGIC
-    // Shows after 1s hover, clickable even in click-through mode
+    // Shows after 0.5s hover, clickable even in click-through mode
     // ============================================
     initSettingsHover();
   } catch (error) {
@@ -239,6 +245,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     ctx.fillText(`Load failed: ${error.message}`, 10, 30);
   }
 });
+
+// ============================================
+// SETTINGS SYSTEM
+// ============================================
+let currentSettings = null;
+
+/**
+ * Initialize settings - load current and listen for changes
+ */
+async function initSettings(stateMachine) {
+  if (!window.electronAPI?.getSettings) {
+    console.warn('Settings API not available');
+    return;
+  }
+
+  // Load initial settings
+  try {
+    currentSettings = await window.electronAPI.getSettings();
+    console.log('⚙️ Settings loaded:', currentSettings);
+    applySettings(currentSettings, stateMachine);
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+
+  // Listen for settings changes from main process
+  if (window.electronAPI?.onSettingsChanged) {
+    window.electronAPI.onSettingsChanged((settings) => {
+      console.log('⚙️ Settings changed:', settings);
+      currentSettings = settings;
+      applySettings(settings, stateMachine);
+    });
+    console.log('📡 Listening for settings changes');
+  }
+}
+
+/**
+ * Apply settings to the overlay
+ */
+function applySettings(settings, stateMachine) {
+  if (!settings) {
+    return;
+  }
+
+  // Apply scale
+  if (settings.size?.scale && stateMachine) {
+    stateMachine.scale = settings.size.scale;
+    // Re-render with new scale if animation is loaded
+    if (stateMachine.currentAnimation?.isLoaded) {
+      stateMachine.canvas.width = stateMachine.currentAnimation.frameWidth * settings.size.scale;
+      stateMachine.canvas.height = stateMachine.currentAnimation.frameHeight * settings.size.scale;
+    }
+    console.log(`📐 Applied scale: ${settings.size.scale}`);
+  }
+
+  // Log other applied settings
+  console.log(`🔒 Locked: ${settings.locked}`);
+  console.log(`🖱️ Click-through: ${settings.clickThroughEnabled}`);
+  console.log(`↔️ Draggable: ${settings.draggableWhenNotClickThrough}`);
+}
 
 // ============================================
 // SETTINGS ICON HOVER SYSTEM
@@ -314,8 +379,8 @@ function handleSettingsClick() {
   console.log('⚙️ Settings button clicked');
   
   // Open settings window
-  if (window.electronAPI?.showSettings) {
-    window.electronAPI.showSettings();
+  if (window.electronAPI?.openSettings) {
+    window.electronAPI.openSettings();
   }
 }
 

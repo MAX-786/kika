@@ -10,6 +10,9 @@ const { DEFAULT_SETTINGS } = require('./defaultSettings');
 
 const SETTINGS_FILE = 'kika-settings.json';
 
+// In-memory cache of current settings
+let cachedSettings = null;
+
 /**
  * Get the full path to the settings file
  * @returns {string} Absolute path to settings file
@@ -27,7 +30,14 @@ function getSettingsPath() {
 function deepMerge(target, source) {
   const result = { ...target };
   for (const key of Object.keys(source)) {
-    if (source[key] instanceof Object && key in target && target[key] instanceof Object) {
+    if (
+      source[key] !== null &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key]) &&
+      key in target &&
+      typeof target[key] === 'object' &&
+      !Array.isArray(target[key])
+    ) {
       result[key] = deepMerge(target[key], source[key]);
     } else {
       result[key] = source[key];
@@ -37,24 +47,76 @@ function deepMerge(target, source) {
 }
 
 /**
+ * Validate settings object
+ * @param {object} settings - Settings to validate
+ * @returns {object} Validated settings with defaults for invalid values
+ */
+function validateSettings(settings) {
+  const validated = deepMerge(DEFAULT_SETTINGS, settings);
+
+  // Validate position mode
+  if (!['preset', 'free'].includes(validated.position.mode)) {
+    validated.position.mode = DEFAULT_SETTINGS.position.mode;
+  }
+
+  // Validate position preset
+  const validPresets = ['bottomCenter', 'bottomLeft', 'bottomRight', 'topLeft', 'topRight'];
+  if (!validPresets.includes(validated.position.preset)) {
+    validated.position.preset = DEFAULT_SETTINGS.position.preset;
+  }
+
+  // Validate scale (0.5 to 5)
+  if (typeof validated.size.scale !== 'number' || validated.size.scale < 0.5 || validated.size.scale > 5) {
+    validated.size.scale = DEFAULT_SETTINGS.size.scale;
+  }
+
+  // Validate booleans
+  if (typeof validated.clickThroughEnabled !== 'boolean') {
+    validated.clickThroughEnabled = DEFAULT_SETTINGS.clickThroughEnabled;
+  }
+  if (typeof validated.draggableWhenNotClickThrough !== 'boolean') {
+    validated.draggableWhenNotClickThrough = DEFAULT_SETTINGS.draggableWhenNotClickThrough;
+  }
+  if (typeof validated.locked !== 'boolean') {
+    validated.locked = DEFAULT_SETTINGS.locked;
+  }
+
+  return validated;
+}
+
+/**
  * Load settings from file, merging with defaults
  * @returns {object} Settings object
  */
 function loadSettings() {
+  if (cachedSettings) {
+    return cachedSettings;
+  }
+
   try {
     const settingsPath = getSettingsPath();
 
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8');
       const userSettings = JSON.parse(data);
-      // Merge with defaults to ensure all keys exist
-      return deepMerge(DEFAULT_SETTINGS, userSettings);
+      cachedSettings = validateSettings(userSettings);
+      console.log('📋 Settings loaded from:', settingsPath);
+      return cachedSettings;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
 
-  return { ...DEFAULT_SETTINGS };
+  cachedSettings = { ...DEFAULT_SETTINGS };
+  return cachedSettings;
+}
+
+/**
+ * Get all current settings
+ * @returns {object} Current settings object
+ */
+function getSettings() {
+  return loadSettings();
 }
 
 /**
@@ -64,8 +126,10 @@ function loadSettings() {
  */
 function saveSettings(settings) {
   try {
+    const validated = validateSettings(settings);
     const settingsPath = getSettingsPath();
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    fs.writeFileSync(settingsPath, JSON.stringify(validated, null, 2), 'utf-8');
+    cachedSettings = validated;
     console.log('💾 Settings saved to:', settingsPath);
     return true;
   } catch (error) {
@@ -75,17 +139,42 @@ function saveSettings(settings) {
 }
 
 /**
+ * Update settings (partial merge)
+ * @param {object} partialSettings - Partial settings to merge
+ * @returns {object} Updated settings object
+ */
+function updateSettings(partialSettings) {
+  const current = getSettings();
+  const merged = deepMerge(current, partialSettings);
+  const validated = validateSettings(merged);
+  saveSettings(validated);
+  return validated;
+}
+
+/**
  * Reset settings to defaults
  * @returns {object} Default settings
  */
 function resetSettings() {
+  cachedSettings = { ...DEFAULT_SETTINGS };
   saveSettings(DEFAULT_SETTINGS);
-  return { ...DEFAULT_SETTINGS };
+  return cachedSettings;
+}
+
+/**
+ * Clear cached settings (force reload on next get)
+ */
+function clearCache() {
+  cachedSettings = null;
 }
 
 module.exports = {
   loadSettings,
+  getSettings,
   saveSettings,
+  updateSettings,
   resetSettings,
   getSettingsPath,
+  clearCache,
+  validateSettings,
 };
