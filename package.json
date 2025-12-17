@@ -1,0 +1,42 @@
+{
+  "name": "kika",
+  "version": "1.0.0",
+  "description": "A minimal Electron overlay application",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "build": "electron-builder",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "electron",
+    "overlay",
+    "kika"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.16.0",
+    "prettier": "^3.4.2",
+    "@eslint/js": "^9.16.0",
+    "globals": "^15.13.0"
+  },
+  "build": {
+    "appId": "com.example.kika",
+    "productName": "Kika",
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
