@@ -1,0 +1,54 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 
+ * CRITICAL: html and body must be transparent for the overlay to work.
+ * The background is fully transparent so you can see through to the desktop.
+ */
+html,
+body {
+    background: transparent !important;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        sans-serif;
+}
+
+/* 
+ * Position the sprite canvas at the bottom center of the overlay window.
+ * Uses absolute positioning to anchor to the bottom edge.
+ */
+#cat-sprite {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* Ensure transparency is preserved */
+    background: transparent;
+
+    /* Optional: add a subtle debug border (remove in production) */
+    /* border: 1px dashed rgba(233, 69, 96, 0.5); */
+}
+
+/* 
+ * Make the canvas area draggable for repositioning the overlay.
+ * Remove this if you want full click-through everywhere.
+ */
+/*
+#cat-sprite {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+*/

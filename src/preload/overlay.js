@@ -1,6 +1,10 @@
+/**
+ * Preload script for overlay window
+ * Exposes IPC methods to renderer
+ */
+
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
 
@@ -14,5 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove input event listener
   removeInputEventListener: () => {
     ipcRenderer.removeAllListeners('input-event');
+  },
+
+  // Open settings window
+  showSettings: () => {
+    ipcRenderer.send('show-settings-window');
   },
 });

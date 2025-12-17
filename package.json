@@ -2,7 +2,7 @@
   "name": "kika",
   "version": "1.0.0",
   "description": "A minimal Electron overlay application",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
@@ -43,16 +43,12 @@
       "buildResources": "build"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "renderer.js",
-      "index.html",
-      "styles.css",
+      "src/**/*",
       "assets/**/*",
       "node_modules/**/*"
     ],
     "extraMetadata": {
-      "main": "main.js"
+      "main": "src/main/index.js"
     },
     "mac": {
       "category": "public.app-category.utilities",
