@@ -1,36 +1,55 @@
 // ============================================
-// SPRITE ANIMATION CONFIGURATION
-// Change these constants to adjust the animation
+// ANIMATION CONFIGURATION
 // ============================================
-const SPRITE_CONFIG = {
-  src: './assets/cat_idle.png', // Path to sprite sheet
-  frameCount: 4, // Number of frames in the sprite sheet (horizontal)
-  fps: 8, // Animation speed in frames per second (normal)
-  fpsExcited: 24, // Animation speed when input detected (excited)
-  scale: 1.5, // Scale multiplier for the sprite
-  excitedDuration: 200, // How long to stay excited (ms)
+const ANIMATION_CONFIG = {
+  idle: {
+    src: './assets/cat_idle.png',
+    frameCount: 4,
+    fps: 8,
+    loop: true,
+  },
+  hit: {
+    src: './assets/cat_hit.png',
+    frameCount: 4,
+    fps: 12,
+    loop: false, // Play once, then return to idle
+  },
+  // ----------------------------------------
+  // HOW TO ADD MORE STATES:
+  // ----------------------------------------
+  // sleep: {
+  //   src: './assets/cat_sleep.png',
+  //   frameCount: 6,
+  //   fps: 4,
+  //   loop: true,
+  // },
+  // criticalHit: {
+  //   src: './assets/cat_critical.png',
+  //   frameCount: 8,
+  //   fps: 16,
+  //   loop: false,
+  // },
 };
 
-// ============================================
-// SPRITE ANIMATOR CLASS
-// ============================================
-class SpriteAnimator {
-  constructor(canvas, config) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.config = config;
+const SPRITE_SCALE = 1.5;
 
-    this.spriteSheet = null;
+// ============================================
+// ANIMATION CLASS
+// Holds data for a single animation: image, frames, timing
+// ============================================
+class Animation {
+  constructor(name, config) {
+    this.name = name;
+    this.src = config.src;
+    this.frameCount = config.frameCount;
+    this.fps = config.fps;
+    this.loop = config.loop;
+    this.frameDuration = 1000 / config.fps;
+
+    this.image = null;
     this.frameWidth = 0;
     this.frameHeight = 0;
-    this.currentFrame = 0;
-    this.lastFrameTime = 0;
-    this.frameDuration = 1000 / config.fps; // ms per frame
-    this.baseFrameDuration = 1000 / config.fps;
-    this.excitedFrameDuration = 1000 / config.fpsExcited;
-
     this.isLoaded = false;
-    this.excitedTimeout = null;
   }
 
   /**
@@ -39,122 +58,187 @@ class SpriteAnimator {
    */
   async load() {
     return new Promise((resolve, reject) => {
-      this.spriteSheet = new Image();
+      this.image = new Image();
 
-      this.spriteSheet.onload = () => {
-        // Calculate frame dimensions (horizontal sprite sheet)
-        this.frameWidth = this.spriteSheet.width / this.config.frameCount;
-        this.frameHeight = this.spriteSheet.height;
-
-        // Set canvas size based on single frame + scale
-        this.canvas.width = this.frameWidth * this.config.scale;
-        this.canvas.height = this.frameHeight * this.config.scale;
-
+      this.image.onload = () => {
+        this.frameWidth = this.image.width / this.frameCount;
+        this.frameHeight = this.image.height;
         this.isLoaded = true;
-        console.log(
-          `🐱 Sprite loaded: ${this.frameWidth}x${this.frameHeight} per frame, ${this.config.frameCount} frames`
-        );
+        console.log(`� Loaded animation '${this.name}': ${this.frameCount} frames @ ${this.fps} FPS`);
         resolve();
       };
 
-      this.spriteSheet.onerror = () => {
-        reject(new Error(`Failed to load sprite: ${this.config.src}`));
+      this.image.onerror = () => {
+        reject(new Error(`Failed to load animation: ${this.src}`));
       };
 
-      this.spriteSheet.src = this.config.src;
+      this.image.src = this.src;
     });
   }
+}
 
-  /**
-   * Temporarily speed up animation when input is detected
-   */
-  triggerExcited() {
-    // Switch to excited (faster) speed
-    this.frameDuration = this.excitedFrameDuration;
+// ============================================
+// ANIMATION STATE MACHINE
+// Manages state transitions and animation playback
+// ============================================
+class AnimationStateMachine {
+  constructor(canvas, animations) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.animations = animations; // Map<string, Animation>
+    this.scale = SPRITE_SCALE;
 
-    // Clear any existing timeout
-    if (this.excitedTimeout) {
-      clearTimeout(this.excitedTimeout);
-    }
-
-    // Reset to normal speed after duration
-    this.excitedTimeout = setTimeout(() => {
-      this.frameDuration = this.baseFrameDuration;
-      this.excitedTimeout = null;
-    }, this.config.excitedDuration);
+    this.currentState = null;
+    this.currentAnimation = null;
+    this.frameIndex = 0;
+    this.lastFrameTime = 0;
+    this.pendingState = null; // State to transition to after current animation ends
   }
 
   /**
-   * Draw the current frame to the canvas
+   * Set the current animation state
+   * @param {string} name - Name of the state (e.g., 'idle', 'hit')
+   * @param {object} options - Options for state transition
+   * @param {boolean} options.force - Force immediate transition even if non-looping
+   * @param {string} options.onComplete - State to transition to when this animation completes
    */
-  drawFrame() {
-    if (!this.isLoaded) {
+  setState(name, options = {}) {
+    const animation = this.animations.get(name);
+
+    if (!animation) {
+      console.error(`Animation state '${name}' not found`);
       return;
     }
 
-    // Clear canvas (important for transparency)
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!animation.isLoaded) {
+      console.error(`Animation '${name}' not loaded yet`);
+      return;
+    }
 
-    // Calculate source rectangle for current frame
-    const srcX = this.currentFrame * this.frameWidth;
-    const srcY = 0;
+    // If already in this state and not forcing, ignore
+    if (this.currentState === name && !options.force) {
+      return;
+    }
 
-    // Draw the current frame, scaled
-    this.ctx.drawImage(
-      this.spriteSheet,
-      srcX,
-      srcY,
-      this.frameWidth,
-      this.frameHeight, // Source rectangle
-      0,
-      0,
-      this.canvas.width,
-      this.canvas.height // Destination rectangle (scaled)
-    );
+    console.log(`🔄 State transition: ${this.currentState || 'none'} → ${name}`);
+
+    this.currentState = name;
+    this.currentAnimation = animation;
+    this.frameIndex = 0;
+    this.lastFrameTime = performance.now();
+    this.pendingState = options.onComplete || null;
+
+    // Resize canvas for this animation
+    this.canvas.width = animation.frameWidth * this.scale;
+    this.canvas.height = animation.frameHeight * this.scale;
   }
 
   /**
-   * Update animation frame based on elapsed time
+   * Update the animation based on elapsed time
    * @param {number} timestamp - Current timestamp from requestAnimationFrame
    */
   update(timestamp) {
-    if (!this.isLoaded) {
+    if (!this.currentAnimation || !this.currentAnimation.isLoaded) {
       return;
     }
 
-    // Check if enough time has passed for next frame
     const elapsed = timestamp - this.lastFrameTime;
 
-    if (elapsed >= this.frameDuration) {
-      // Advance to next frame (loop back to 0)
-      this.currentFrame = (this.currentFrame + 1) % this.config.frameCount;
+    if (elapsed >= this.currentAnimation.frameDuration) {
+      const nextFrame = this.frameIndex + 1;
+
+      if (nextFrame >= this.currentAnimation.frameCount) {
+        // Animation finished
+        if (this.currentAnimation.loop) {
+          // Loop back to start
+          this.frameIndex = 0;
+        } else if (this.pendingState) {
+          // Transition to pending state (e.g., back to idle)
+          this.setState(this.pendingState);
+          return;
+        } else {
+          // Stay on last frame
+          this.frameIndex = this.currentAnimation.frameCount - 1;
+        }
+      } else {
+        this.frameIndex = nextFrame;
+      }
+
       this.lastFrameTime = timestamp;
     }
   }
 
   /**
-   * Main animation loop using requestAnimationFrame
+   * Draw the current frame to the canvas
    */
-  animate(timestamp = 0) {
-    this.update(timestamp);
-    this.drawFrame();
-
-    // Continue the loop
-    requestAnimationFrame((ts) => this.animate(ts));
-  }
-
-  /**
-   * Start the animation
-   */
-  start() {
-    if (!this.isLoaded) {
-      console.error('Cannot start animation: sprite not loaded');
+  draw() {
+    if (!this.currentAnimation || !this.currentAnimation.isLoaded) {
       return;
     }
 
-    console.log(`🎬 Starting animation at ${this.config.fps} FPS`);
-    this.animate();
+    const anim = this.currentAnimation;
+
+    // Clear canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Calculate source rectangle
+    const srcX = this.frameIndex * anim.frameWidth;
+    const srcY = 0;
+
+    // Draw scaled frame
+    this.ctx.drawImage(
+      anim.image,
+      srcX,
+      srcY,
+      anim.frameWidth,
+      anim.frameHeight,
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
   }
+
+  /**
+   * Main animation loop
+   */
+  tick(timestamp = 0) {
+    this.update(timestamp);
+    this.draw();
+    requestAnimationFrame((ts) => this.tick(ts));
+  }
+
+  /**
+   * Start the animation loop
+   */
+  start() {
+    console.log('🎬 Animation state machine started');
+    this.tick();
+  }
+
+  /**
+   * Trigger a one-shot animation, then return to idle
+   * @param {string} stateName - Name of the one-shot state
+   */
+  triggerOneShot(stateName) {
+    this.setState(stateName, { onComplete: 'idle' });
+  }
+}
+
+// ============================================
+// LOADER - Preload all animation assets
+// ============================================
+async function loadAnimations(config) {
+  const animations = new Map();
+
+  const loadPromises = Object.entries(config).map(async ([name, animConfig]) => {
+    const animation = new Animation(name, animConfig);
+    await animation.load();
+    animations.set(name, animation);
+  });
+
+  await Promise.all(loadPromises);
+  return animations;
 }
 
 // ============================================
@@ -168,33 +252,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Create and initialize the sprite animator
-  const animator = new SpriteAnimator(canvas, SPRITE_CONFIG);
-
   try {
-    await animator.load();
-    animator.start();
-    console.log('🥁 Kika sprite overlay initialized');
+    // Load all animations
+    console.log('⏳ Loading animations...');
+    const animations = await loadAnimations(ANIMATION_CONFIG);
 
-    // Listen for global input events from main process
+    // Create state machine
+    const stateMachine = new AnimationStateMachine(canvas, animations);
+
+    // Start with idle state
+    stateMachine.setState('idle');
+    stateMachine.start();
+
+    console.log('🥁 Kika animation state machine initialized');
+
+    // Listen for global input events
     if (window.electronAPI?.onInputEvent) {
       window.electronAPI.onInputEvent((data) => {
         console.log(`🎹 Input #${data.count}: ${data.type}`);
 
-        // Trigger excited animation
-        animator.triggerExcited();
+        // Trigger hit animation on any input
+        stateMachine.triggerOneShot('hit');
       });
       console.log('📡 Listening for global input events');
     }
   } catch (error) {
-    console.error('Failed to initialize sprite animation:', error);
+    console.error('Failed to initialize animations:', error);
 
-    // Fallback: show error on canvas
-    canvas.width = 200;
+    // Fallback error display
+    canvas.width = 300;
     canvas.height = 50;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ff6b6b';
     ctx.font = '14px system-ui';
-    ctx.fillText('Sprite load failed', 10, 30);
+    ctx.fillText(`Load failed: ${error.message}`, 10, 30);
   }
 });
