@@ -1,30 +1,48 @@
-# Kika Documentation
+# Kika 🐾
 
-Developer documentation for Kika - an Electron overlay application.
+> A playful, interactive desktop overlay character that reacts to your keyboard and mouse input.
 
-## Documentation Index
+![Kika Demo](https://via.placeholder.com/800x450?text=Kika+Demo+Placeholder)
 
-| Document                                   | Description                               |
-| ------------------------------------------ | ----------------------------------------- |
-| [getting-started.md](getting-started.md)   | Setup, installation, and first run        |
-| [architecture.md](architecture.md)         | Project structure and code organization   |
-| [animation-system.md](animation-system.md) | Sprite animation state machine            |
-| [input-hooks.md](input-hooks.md)           | Global keyboard/mouse event handling      |
-| [building.md](building.md)                 | Cross-platform packaging and distribution |
+## Features
 
-## Quick Reference
+- 🐱 **Interactive Companion**: A bongo-cat style overlay that taps along with your typing.
+- ⌨️ **Input Tracking**: Monitors global keyboard and mouse usage in real-time.
+- ⚙️ **Customizable**:
+  - **Positioning**: Drag and drop anywhere or use the "Bottom Center" preset.
+  - **Appearance**: Adjust scale and opacity to fit your setup.
+  - **Behavior**: "Click-through" mode lets you keep Kika on screen without blocking clicks.
+- 🔓 **Open Source**: Built with Electron, ready to be hacked on.
 
-```bash
-# Development
-npm run dev          # Start app in development mode
-npm run lint         # Run ESLint
-npm run format       # Format code with Prettier
+## Quick Start
 
-# Testing
-npm run test:smoke   # Run smoke test
+Download the latest release for your platform or build it yourself:
 
-# Building
-npm run build:mac    # Build for macOS
-npm run build:win    # Build for Windows
-npm run build:linux  # Build for Linux
-```
+1.  **Clone the repo**
+
+    ```bash
+    git clone https://github.com/mohammad/kika.git
+    cd kika
+    ```
+
+2.  **Install dependencies**
+
+    ```bash
+    npm install
+    ```
+
+3.  **Run in development**
+    ```bash
+    npm run dev
+    ```
+
+> **Note for macOS Users**: Kika requires **Accessibility Permissions** to detect global input. You will be prompted to grant these permissions on first launch.
+
+## Documentation
+
+- [Getting Started](./getting-started.md) - Installation and setup guide.
+- [Building & Distribution](./building.md) - How to package the app for macOS, Windows, and Linux.
+- [Architecture](./architecture.md) - Technical overview of the codebase.
+- [Settings & Configuration](./settings.md) - Detailed guide on available settings.
+- [Animation System](./animation-system.md) - How the sprite animations work.
+- [Input Hooks](./input-hooks.md) - Details on `uiohook-napi` integration.

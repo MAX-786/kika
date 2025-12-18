@@ -68,7 +68,7 @@ Build settings are in `package.json` under the `build` key. Key options:
 | Setting               | Purpose                       |
 | --------------------- | ----------------------------- |
 | `appId`               | Unique app identifier         |
-| `productName`         | Display name                  |
+| `productName`         | Display name (Kika)           |
 | `mac.hardenedRuntime` | Required for notarization     |
 | `mac.entitlements`    | Permissions for Accessibility |
 | `files`               | Files to include in build     |

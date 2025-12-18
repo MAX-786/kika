@@ -10,7 +10,7 @@
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/MAX-786/kika.git
 cd kika
 
 # Install dependencies
@@ -23,7 +23,7 @@ npm install
 npm run dev
 ```
 
-This opens the overlay window with DevTools attached.
+This opens the Kika overlay and the Settings window (or tray icon).
 
 ## macOS Accessibility Permissions
 
@@ -31,10 +31,10 @@ Kika uses global input hooks to detect keyboard/mouse events. On macOS, you must
 
 1. Go to **System Preferences → Security & Privacy → Privacy → Accessibility**
 2. Click the lock icon to make changes
-3. Add your terminal app (Terminal, iTerm, VS Code) or Kika.app
+3. Add your terminal app (Terminal, iTerm, VS Code) or Kika.app (if built)
 4. Enable the checkbox
 
-Without these permissions, input hooks will not work.
+Without these permissions, Kika cannot detect your typing.
 
 ## Verifying the Setup
 
@@ -44,18 +44,12 @@ Run the smoke test:
 npm run test:smoke
 ```
 
-Expected output shows checkmarks for:
-
-- Global input hooks started
-- Animations loaded
-- State machine initialized
-
 ## Manual Verification Checklist
 
 After running `npm run dev`:
 
-- [ ] Overlay visible at bottom center of screen
-- [ ] Background is transparent (desktop visible)
+- [ ] Kika overlay visible at bottom center of screen
+- [ ] Background is transparent
 - [ ] Overlay stays on top when clicking other windows
-- [ ] Cat sprite animates
-- [ ] Typing in another app shows input count in DevTools console
+- [ ] Kika animates when typing
+- [ ] Settings window opens via tray or shortcut

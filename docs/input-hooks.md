@@ -32,7 +32,7 @@ Without permissions, the app may crash or hooks won't capture events.
 
 ## Code Reference
 
-### Main Process (main.js)
+### Main Process (src/main/index.js)
 
 ```javascript
 // Initialize hooks
@@ -47,7 +47,7 @@ uIOhook.on('mousedown', () => {
 uIOhook.start();
 ```
 
-### Preload (preload.js)
+### Preload (src/preload/index.js)
 
 ```javascript
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 ```
 
-### Renderer (renderer.js)
+### Renderer (src/renderer/overlay/renderer.js)
 
 ```javascript
 window.electronAPI.onInputEvent((data) => {

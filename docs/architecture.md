@@ -1,61 +1,47 @@
 # Architecture
 
-## Project Structure
+## Overview
 
-```
-kika/
-├── main.js          # Electron main process
-├── preload.js       # Context bridge for IPC
-├── renderer.js      # Animation state machine
-├── index.html       # HTML entry point
-├── styles.css       # Overlay styling
-├── assets/          # Sprite sheets
-├── scripts/         # Utility scripts
-├── build/           # Build resources (icons, entitlements)
-└── docs/            # Documentation
-```
+Kika uses a standard Electron architecture with a Main process and a Renderer process.
 
-## Process Model
-
-```
-┌─────────────────┐      IPC       ┌─────────────────┐
-│  Main Process   │ ─────────────► │ Renderer Process│
-│    (main.js)    │                │  (renderer.js)  │
-│                 │                │                 │
-│ - Window mgmt   │                │ - Animation     │
-│ - Input hooks   │                │ - Canvas        │
-│ - System APIs   │                │ - UI logic      │
-└─────────────────┘                └─────────────────┘
-        │
-        │ preload.js (context bridge)
-        ▼
-   electronAPI exposed to renderer
+```mermaid
+graph TD
+    Main[Main Process] -->|Creates| Overlay[Overlay Window]
+    Main -->|Creates| Settings[Settings Window]
+    Main -->|Input Events| Overlay
+    Settings -->|Update Settings| Main
+    Main -->|Broadcast Settings| Overlay
+    Hook[uiohook-napi] -->|Raw Events| Main
 ```
 
-## Key Files
+## Components
 
-### main.js
+### 1. Main Process (`src/main/`)
 
-- Creates frameless, transparent BrowserWindow
-- Configures always-on-top and click-through behavior
-- Initializes global input hooks via `uiohook-napi`
-- Sends input events to renderer via IPC
+- Entry point: `index.js`
+- Manages `BrowserWindow` instances:
+  - **Overlay Window**: The transparent, always-on-top window for the cat.
+  - **Settings Window**: The configuration UI.
+- Handles global input hooks via `uiohook-napi`.
+- Manages application state (input counts) and persistence (electron-store).
 
-### preload.js
+### 2. Renderer Process (`src/renderer/`)
 
-- Exposes `electronAPI` to renderer via context bridge
-- Provides `onInputEvent` callback for receiving input events
+- **Overlay** (`renderer/overlay/`):
+  - Renders the cat sprites.
+  - Listen for state changes (idle, active, hit).
+- **Settings** (`renderer/settings/`):
+  - Provides UI for configuration.
+  - Communicates with Main process to update preferences.
 
-### renderer.js
+### 3. IPC Layer (`src/main/ipc/`)
 
-- `Animation` class: Holds sprite sheet data (image, frameCount, fps)
-- `AnimationStateMachine` class: Manages state transitions and playback
-- Listens for input events and triggers animations
-
-## Data Flow
-
-1. User types/clicks anywhere on system
-2. `uiohook-napi` captures the event in main process
-3. Main process increments counter and sends IPC message
-4. Preload bridge forwards event to renderer
-5. Renderer triggers animation state change
+- Handles communication between Main and Renderer processes.
+- **Channels**:
+  - `input:event`: Sends key/mouse events to overlay.
+  - `settings:update`: Renderer -> Main (Save settings).
+  - `settings:changed`: Main -> Renderer (Broadcast updates).
+  - `reset-settings`: Reset to defaults.
+  - `overlay:enable-click-through` / `overlay:disable-click-through`.
+  - `overlay:dragEnd`: Notify main process of new position.
+  - `overlay:resetPosition`: Reset position to preset.
