@@ -102,6 +102,14 @@
 
                 <p class="setting-hint">When ON, clicks pass through overlay. When OFF, overlay is draggable. Use
                     Cmd+Option+K for settings.</p>
+
+                <div class="setting-row checkbox">
+                    <input type="checkbox" id="visible-all-workspaces" checked />
+                    <label for="visible-all-workspaces">Show on all desktops (Spaces)</label>
+                </div>
+                <p id="workspace-hint" class="setting-hint" style="display: none;">
+                    Not supported on Windows by Electron; applies to macOS/Linux only.
+                </p>
             </section>
 
             <div class="button-row">

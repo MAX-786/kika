@@ -80,6 +80,9 @@ function validateSettings(settings) {
   if (typeof validated.locked !== 'boolean') {
     validated.locked = DEFAULT_SETTINGS.locked;
   }
+  if (typeof validated.visibleOnAllWorkspaces !== 'boolean') {
+    validated.visibleOnAllWorkspaces = DEFAULT_SETTINGS.visibleOnAllWorkspaces;
+  }
 
   return validated;
 }

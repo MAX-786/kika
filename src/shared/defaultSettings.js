@@ -35,6 +35,9 @@ const DEFAULT_SETTINGS = {
   // Click-through behavior
   clickThroughEnabled: true,
 
+  // Show overlay on all virtual desktops/workspaces (macOS Spaces, Linux workspaces)
+  visibleOnAllWorkspaces: true,
+
   // Draggable when click-through is off
   draggableWhenNotClickThrough: true,
 

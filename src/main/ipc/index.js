@@ -7,6 +7,7 @@ const {
   disableOverlayClickThrough,
   repositionOverlay,
   setOverlayOpacity,
+  applyWorkspaceVisibility,
 } = require('../windows/overlayWindow');
 const { showSettingsWindow, closeSettingsWindow, getSettingsWindow } = require('../windows/settingsWindow');
 const {
@@ -214,6 +215,9 @@ function registerIPCHandlers() {
 
       // Reposition overlay with new settings (size/position changes)
       repositionOverlay(updatedSettings);
+
+      // Apply workspace visibility setting
+      applyWorkspaceVisibility(overlayWindow, updatedSettings);
     }
 
     return updatedSettings;
@@ -240,6 +244,9 @@ function registerIPCHandlers() {
 
       // Reposition overlay with new settings (size/position/scale changes)
       repositionOverlay(updatedSettings);
+
+      // Apply workspace visibility setting
+      applyWorkspaceVisibility(overlayWindow, updatedSettings);
 
       // Broadcast settings:changed to overlay renderer
       overlayWindow.webContents.send('settings:changed', updatedSettings);

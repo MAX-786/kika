@@ -175,6 +175,9 @@ function createOverlayWindow(settings = DEFAULT_SETTINGS) {
   const clickThroughEnabled = settings.clickThroughEnabled ?? true;
   setClickThrough(overlayWindow, clickThroughEnabled);
 
+  // Apply workspace visibility setting
+  applyWorkspaceVisibility(overlayWindow, settings);
+
   return overlayWindow;
 }
 
@@ -234,6 +237,44 @@ function setOverlayOpacity(opacity) {
   overlayWindow.setOpacity(opacity);
 }
 
+/**
+ * Apply workspace visibility setting to overlay window
+ * Controls whether overlay appears on all virtual desktops (macOS Spaces, Linux workspaces)
+ * @param {BrowserWindow} win - The overlay window
+ * @param {object} settings - Settings containing visibleOnAllWorkspaces
+ */
+function applyWorkspaceVisibility(win, settings) {
+  if (!win || win.isDestroyed()) {
+    return;
+  }
+
+  const visible = settings.visibleOnAllWorkspaces ?? true;
+  const platform = process.platform;
+
+  if (platform === 'win32') {
+    console.log('⚠️ visibleOnAllWorkspaces not supported on Windows');
+    return;
+  }
+
+  if (visible) {
+    if (platform === 'darwin') {
+      // visibleOnFullScreen: ensures overlay stays visible over full-screen apps
+      // skipTransformProcessType: prevents dock icon flickering
+      win.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true,
+        skipTransformProcessType: true,
+      });
+    } else {
+      // Linux - no extra options needed
+      win.setVisibleOnAllWorkspaces(true);
+    }
+    console.log('🖥️ Overlay visible on all workspaces');
+  } else {
+    win.setVisibleOnAllWorkspaces(false);
+    console.log('🖥️ Overlay visible on current workspace only');
+  }
+}
+
 module.exports = {
   createOverlayWindow,
   getOverlayWindow,
@@ -244,4 +285,5 @@ module.exports = {
   computeOverlayBounds,
   applyOverlayBounds,
   setOverlayOpacity,
+  applyWorkspaceVisibility,
 };

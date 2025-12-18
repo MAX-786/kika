@@ -21,6 +21,8 @@ const hitFpsInput = document.getElementById('hit-fps');
 const hitFpsValue = document.getElementById('hit-fps-value');
 const resetBtn = document.getElementById('reset-btn');
 const resetPositionBtn = document.getElementById('reset-position-btn');
+const visibleAllWorkspaces = document.getElementById('visible-all-workspaces');
+const workspaceHint = document.getElementById('workspace-hint');
 
 /**
  * Load current settings into form
@@ -57,6 +59,15 @@ async function loadSettings() {
     // Position
     positionX.value = settings.position?.x || 0;
     positionY.value = settings.position?.y || 0;
+
+    // Workspace visibility
+    visibleAllWorkspaces.checked = settings.visibleOnAllWorkspaces !== false;
+    
+    // Disable on Windows
+    if (navigator.platform.includes('Win')) {
+      visibleAllWorkspaces.disabled = true;
+      workspaceHint.style.display = 'block';
+    }
     
     console.log('📋 Settings loaded');
   } catch (error) {
@@ -215,6 +226,18 @@ hitFpsInput.addEventListener('input', () => {
     hitFpsValue.textContent = hitFpsInput.value;
 });
 
+// Workspace visibility - apply immediately on change
+visibleAllWorkspaces.addEventListener('change', async () => {
+  try {
+    await window.electronAPI.saveSettings({
+      visibleOnAllWorkspaces: visibleAllWorkspaces.checked,
+    });
+    console.log(`🖥️ Workspace visibility: ${visibleAllWorkspaces.checked}`);
+  } catch (error) {
+    console.error('Failed to update workspace visibility:', error);
+  }
+});
+
 // Listen for settings changes from main process (e.g., when overlay is dragged)
 if (window.electronAPI?.onSettingsChanged) {
   window.electronAPI.onSettingsChanged((settings) => {
@@ -229,6 +252,11 @@ if (window.electronAPI?.onSettingsChanged) {
     // Update click-through if changed
     if (settings.clickThroughEnabled !== undefined) {
       clickThrough.checked = settings.clickThroughEnabled !== false;
+    }
+    
+    // Update workspace visibility if changed
+    if (settings.visibleOnAllWorkspaces !== undefined) {
+      visibleAllWorkspaces.checked = settings.visibleOnAllWorkspaces;
     }
   });
 }
