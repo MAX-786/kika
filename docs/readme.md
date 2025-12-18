@@ -2,7 +2,7 @@
 
 > A playful, interactive desktop overlay character that reacts to your keyboard and mouse input.
 
-![Kika Demo](https://via.placeholder.com/800x450?text=Kika+Demo+Placeholder)
+![Kika Demo](../assets//demo.mov)
 
 ## Features
 
@@ -21,7 +21,7 @@ Download the latest release for your platform or build it yourself:
 1.  **Clone the repo**
 
     ```bash
-    git clone https://github.com/mohammad/kika.git
+    git clone https://github.com/MAX-786/kika.git
     cd kika
     ```
 
