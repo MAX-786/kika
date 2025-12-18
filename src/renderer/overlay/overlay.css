@@ -109,3 +109,39 @@ body {
 .settings-btn:hover svg {
     transform: rotate(45deg);
 }
+
+/* ============================================
+ * DRAG BEHAVIOR
+ * Applied dynamically when overlay is draggable
+ * ============================================ */
+
+/* Drag region - enabled dynamically when draggable */
+.drag-enabled {
+    -webkit-app-region: drag;
+    app-region: drag;
+    cursor: move;
+}
+
+/* Interactive elements must not be draggable */
+.settings-btn {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+}
+
+/* Locked state visual feedback */
+.drag-locked {
+    cursor: not-allowed;
+}
+
+/* When locked, show visual indicator on drag region */
+.drag-locked::after {
+    content: '';
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 100, 100, 0.4);
+    border-radius: 4px;
+    pointer-events: none;
+}

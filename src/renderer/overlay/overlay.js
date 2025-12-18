@@ -229,11 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ============================================
     await initSettings(stateMachine);
 
-    // ============================================
-    // SETTINGS ICON HOVER LOGIC
-    // Shows after 0.5s hover, clickable even in click-through mode
-    // ============================================
-    initSettingsHover();
+    console.log('⌨️ Use Cmd+Option+K to open settings');
   } catch (error) {
     console.error('Failed to initialize animations:', error);
 
@@ -299,110 +295,56 @@ function applySettings(settings, stateMachine) {
     console.log(`📐 Applied scale: ${settings.size.scale}`);
   }
 
-  // Log other applied settings
-  console.log(`🔒 Locked: ${settings.locked}`);
+  // Apply drag behavior
+  applyDragBehavior(settings);
+
+  // Log applied settings
   console.log(`🖱️ Click-through: ${settings.clickThroughEnabled}`);
-  console.log(`↔️ Draggable: ${settings.draggableWhenNotClickThrough}`);
 }
 
-// ============================================
-// SETTINGS ICON HOVER SYSTEM
-// ============================================
-const HOVER_DELAY_MS = 500;
-let hoverTimer = null;
-let isSettingsVisible = false;
-let isOverSettingsBtn = false;
+/**
+ * Apply drag behavior based on settings
+ * Drag is enabled when click-through is disabled
+ */
+let isDragListenerAttached = false;
 
-function initSettingsHover() {
-  const settingsBtn = document.getElementById('settings-btn');
-  if (!settingsBtn) {
-    console.warn('Settings button not found');
-    return;
-  }
+function applyDragBehavior(settings) {
+  const clickThrough = settings.clickThroughEnabled !== false;
 
-  // Track mouse movement over overlay (works with forward: true)
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseleave', handleMouseLeave);
+  // Drag is enabled when click-through is disabled
+  const shouldEnableDrag = !clickThrough;
 
-  // Settings button mouse events
-  settingsBtn.addEventListener('mouseenter', handleSettingsBtnEnter);
-  settingsBtn.addEventListener('mouseleave', handleSettingsBtnLeave);
-  settingsBtn.addEventListener('click', handleSettingsClick);
+  // Apply drag class to body
+  if (shouldEnableDrag) {
+    document.body.classList.add('drag-enabled');
+    console.log('↔️ Drag enabled (click-through off)');
 
-  console.log('⚙️ Settings hover system initialized');
-}
+    // Attach drag end listener if not already attached
+    if (!isDragListenerAttached) {
+      document.addEventListener('mouseup', handleDragEnd);
+      isDragListenerAttached = true;
+    }
+  } else {
+    document.body.classList.remove('drag-enabled');
+    console.log('↔️ Drag disabled (click-through on)');
 
-function handleMouseMove() {
-  // User is hovering over the overlay window
-  if (!hoverTimer && !isSettingsVisible) {
-    hoverTimer = setTimeout(() => {
-      showSettingsIcon();
-    }, HOVER_DELAY_MS);
+    // Remove drag end listener
+    if (isDragListenerAttached) {
+      document.removeEventListener('mouseup', handleDragEnd);
+      isDragListenerAttached = false;
+    }
   }
 }
 
-function handleMouseLeave() {
-  // User left the overlay window
-  clearTimeout(hoverTimer);
-  hoverTimer = null;
-
-  // Hide settings icon if not actively over it
-  if (!isOverSettingsBtn) {
-    hideSettingsIcon();
-  }
-}
-
-function handleSettingsBtnEnter() {
-  isOverSettingsBtn = true;
-  
-  // Disable click-through so button is clickable
-  if (window.electronAPI?.disableClickThrough) {
-    window.electronAPI.disableClickThrough();
-    console.log('🖱️ Click-through disabled for settings button');
-  }
-}
-
-function handleSettingsBtnLeave() {
-  isOverSettingsBtn = false;
-  
-  // Re-enable click-through
-  if (window.electronAPI?.enableClickThrough) {
-    window.electronAPI.enableClickThrough();
-    console.log('🖱️ Click-through re-enabled');
-  }
-
-  // Start hide timer
-  hideSettingsIcon();
-}
-
-function handleSettingsClick() {
-  console.log('⚙️ Settings button clicked');
-  
-  // Open settings window
-  if (window.electronAPI?.openSettings) {
-    window.electronAPI.openSettings();
-  }
-}
-
-function showSettingsIcon() {
-  const settingsBtn = document.getElementById('settings-btn');
-  if (!settingsBtn || isSettingsVisible) {
-    return;
-  }
-
-  settingsBtn.classList.add('visible');
-  isSettingsVisible = true;
-  console.log('⚙️ Settings icon visible');
-}
-
-function hideSettingsIcon() {
-  const settingsBtn = document.getElementById('settings-btn');
-  if (!settingsBtn || !isSettingsVisible) {
-    return;
-  }
-
-  settingsBtn.classList.remove('visible');
-  isSettingsVisible = false;
-  hoverTimer = null;
-  console.log('⚙️ Settings icon hidden');
+/**
+ * Handle drag end - notify main process to save position
+ */
+function handleDragEnd() {
+  // Small delay to ensure window position is updated
+  setTimeout(() => {
+    if (window.electronAPI?.notifyDragEnd) {
+      window.electronAPI.notifyDragEnd();
+      console.log('📍 Notified main process of drag end');
+    }
+  }, 50);
 }

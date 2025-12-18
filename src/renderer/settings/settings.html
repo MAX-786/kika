@@ -48,11 +48,21 @@
                 <h2>Position</h2>
 
                 <div class="setting-row">
-                    <label>Overlay Position</label>
+                    <label for="position-x">X Coordinate</label>
+                    <input type="number" id="position-x" value="0" />
+                </div>
+
+                <div class="setting-row">
+                    <label for="position-y">Y Coordinate</label>
+                    <input type="number" id="position-y" value="0" />
+                </div>
+
+                <div class="setting-row">
+                    <label>Quick Actions</label>
                     <button type="button" id="reset-position-btn" class="btn secondary">Reset to Center</button>
                 </div>
 
-                <p class="setting-hint">Resets overlay to bottom center with scale 1.0</p>
+                <p class="setting-hint">Position updates apply immediately</p>
             </section>
 
             <section class="setting-group">
@@ -74,8 +84,11 @@
 
                 <div class="setting-row checkbox">
                     <input type="checkbox" id="click-through" checked />
-                    <label for="click-through">Click-Through Enabled</label>
+                    <label for="click-through">Click-Through Mode</label>
                 </div>
+
+                <p class="setting-hint">When ON, clicks pass through overlay. When OFF, overlay is draggable. Use
+                    Cmd+Option+K for settings.</p>
             </section>
 
             <div class="button-row">

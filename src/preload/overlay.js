@@ -56,4 +56,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeSettingsChangedListener: () => {
     ipcRenderer.removeAllListeners('settings:changed');
   },
+
+  // Notify main process that drag ended (to save position)
+  notifyDragEnd: () => {
+    ipcRenderer.send('overlay:dragEnd');
+  },
 });

@@ -223,6 +223,37 @@ function registerIPCHandlers() {
     return updatedSettings;
   });
 
+  // Handle drag end - save new position to free mode
+  ipcMain.on('overlay:dragEnd', () => {
+    const overlayWindow = getOverlayWindow();
+    if (!overlayWindow || overlayWindow.isDestroyed()) {
+      return;
+    }
+
+    const settings = getSettings();
+
+    // Don't save position if locked
+    if (settings.locked) {
+      console.log('🔒 Drag ignored - overlay is locked');
+      return;
+    }
+
+    // Get current window bounds and save to free mode
+    const bounds = overlayWindow.getBounds();
+    const updatedSettings = updateSettings({
+      position: {
+        mode: 'free',
+        x: bounds.x,
+        y: bounds.y,
+      },
+    });
+
+    console.log(`📍 Position saved: (${bounds.x}, ${bounds.y})`);
+
+    // Broadcast updated settings to renderer
+    overlayWindow.webContents.send('settings:changed', updatedSettings);
+  });
+
   console.log('📡 IPC handlers registered');
 }
 
