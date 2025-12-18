@@ -13,7 +13,19 @@ const ANIMATION_CONFIG = {
     fps: 8,
     loop: true,
   },
-  hit: {
+  left: {
+    src: '../../../assets/kika_hit_left.png',
+    frameCount: 4,
+    fps: 12,
+    loop: false, // Play once, then return to idle
+  },
+  right: {
+    src: '../../../assets/kika_hit_right.png',
+    frameCount: 4,
+    fps: 12,
+    loop: false, // Play once, then return to idle
+  },
+  both: {
     src: '../../../assets/kika_hit.png',
     frameCount: 4,
     fps: 12,
@@ -215,8 +227,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for global input events
     if (window.electronAPI?.onInputEvent) {
       window.electronAPI.onInputEvent((data) => {
-        console.log(`🎹 Input #${data.count}: ${data.type}`);
-        stateMachine.triggerOneShot('hit');
+        console.log(`🎹 Input #${data.count}: ${data.type} (${data.action})`);
+        const animationState = data.action || 'both';
+        stateMachine.triggerOneShot(animationState);
       });
       console.log('📡 Listening for global input events');
     }
@@ -309,12 +322,14 @@ function applySettings(settings, stateMachine) {
       }
       
       if (settings.animation.hitFps) {
-          const hitAnim = stateMachine.animations.get('hit');
-          if (hitAnim && hitAnim.fps !== settings.animation.hitFps) {
-              hitAnim.fps = settings.animation.hitFps;
-              hitAnim.frameDuration = 1000 / hitAnim.fps;
-              console.log(`⏱ Updated hit FPS to ${hitAnim.fps}`);
-          }
+          ['left', 'right', 'both'].forEach((state) => {
+              const anim = stateMachine.animations.get(state);
+              if (anim && anim.fps !== settings.animation.hitFps) {
+                  anim.fps = settings.animation.hitFps;
+                  anim.frameDuration = 1000 / anim.fps;
+                  console.log(`⏱ Updated ${state} FPS to ${anim.fps}`);
+              }
+          });
       }
   }
 

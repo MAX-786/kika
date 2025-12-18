@@ -1,8 +1,3 @@
-/**
- * Centralized IPC handler registration
- * All ipcMain handlers and event wiring in one place
- */
-
 const { ipcMain } = require('electron');
 const { uIOhook, UiohookKey } = require('uiohook-napi');
 const {
@@ -24,17 +19,99 @@ const { DEFAULT_SETTINGS } = require('../../shared/defaultSettings');
 let totalInputs = 0;
 let inputHooksRunning = false;
 
+// ============================================
+// KEY CLASSIFICATION FOR ANIMATION TRIGGERS
+// ============================================
+
+/**
+ * Left-hand keys (trigger left paw animation)
+ * Keys typically pressed with the left hand on QWERTY layout
+ */
+const LEFT_KEYS = new Set([
+  // Letters
+  UiohookKey.Q, UiohookKey.W, UiohookKey.E, UiohookKey.R, UiohookKey.T,
+  UiohookKey.A, UiohookKey.S, UiohookKey.D, UiohookKey.F, UiohookKey.G,
+  UiohookKey.Z, UiohookKey.X, UiohookKey.C, UiohookKey.V, UiohookKey.B,
+  // Numbers
+  UiohookKey['1'], UiohookKey['2'], UiohookKey['3'], UiohookKey['4'], UiohookKey['5'],
+  // Special
+  UiohookKey.Backquote,
+  // Arrow key left
+  UiohookKey.ArrowLeft,
+]);
+
+/**
+ * Right-hand keys (trigger right paw animation)
+ * Keys typically pressed with the right hand on QWERTY layout
+ */
+const RIGHT_KEYS = new Set([
+  // Letters
+  UiohookKey.Y, UiohookKey.U, UiohookKey.I, UiohookKey.O, UiohookKey.P,
+  UiohookKey.H, UiohookKey.J, UiohookKey.K, UiohookKey.L,
+  UiohookKey.N, UiohookKey.M,
+  // Numbers
+  UiohookKey['6'], UiohookKey['7'], UiohookKey['8'], UiohookKey['9'], UiohookKey['0'],
+  // Punctuation and special
+  UiohookKey.Minus, UiohookKey.Equal,
+  UiohookKey.BracketLeft, UiohookKey.BracketRight, UiohookKey.Backslash,
+  UiohookKey.Semicolon, UiohookKey.Quote,
+  UiohookKey.Comma, UiohookKey.Period, UiohookKey.Slash,
+  UiohookKey.Backspace, UiohookKey.Delete,
+  // Arrow key right
+  UiohookKey.ArrowRight,
+  // Navigation
+  UiohookKey.Home, UiohookKey.End, UiohookKey.PageUp, UiohookKey.PageDown, UiohookKey.Insert,
+]);
+
+/**
+ * Special keys (trigger both paws animation)
+ * Large keys, function keys, and modifiers
+ */
+const BOTH_KEYS = new Set([
+  UiohookKey.Space, UiohookKey.Enter, UiohookKey.Tab,
+  UiohookKey.CapsLock, UiohookKey.Escape,
+  // Function keys
+  UiohookKey.F1, UiohookKey.F2, UiohookKey.F3, UiohookKey.F4,
+  UiohookKey.F5, UiohookKey.F6, UiohookKey.F7, UiohookKey.F8,
+  UiohookKey.F9, UiohookKey.F10, UiohookKey.F11, UiohookKey.F12,
+  // Modifiers (all)
+  UiohookKey.Shift, UiohookKey.ShiftRight,
+  UiohookKey.Ctrl, UiohookKey.CtrlRight,
+  UiohookKey.Alt, UiohookKey.AltRight,
+  UiohookKey.Meta, UiohookKey.MetaRight,
+  // Arrow Keys up/down
+  UiohookKey.ArrowUp, UiohookKey.ArrowDown,
+]);
+
+/**
+ * Classify a keycode into an animation action
+ * @param {number} keycode - The key code from uiohook
+ * @returns {'left' | 'right' | 'both'} The animation action to trigger
+ */
+function classifyKeyAction(keycode) {
+  if (LEFT_KEYS.has(keycode)) {
+    return 'left';
+  }
+  if (RIGHT_KEYS.has(keycode)) {
+    return 'right';
+  }
+  // Default to 'both' for any unclassified keys (including BOTH_KEYS)
+  return 'both';
+}
+
 /**
  * Send input event to overlay renderer
  * @param {string} type - 'keypress' or 'click'
+ * @param {string} action - 'left', 'right', or 'both' (animation to trigger)
  */
-function notifyRenderer(type) {
+function notifyRenderer(type, action = 'both') {
   totalInputs++;
 
   const overlayWindow = getOverlayWindow();
   if (overlayWindow && !overlayWindow.isDestroyed()) {
     overlayWindow.webContents.send('input-event', {
       type,
+      action,
       count: totalInputs,
       timestamp: Date.now(),
     });
@@ -72,7 +149,8 @@ function initGlobalInputHooks(settings = DEFAULT_SETTINGS) {
       }
     }
 
-    notifyRenderer('keypress');
+    const action = classifyKeyAction(event.keycode);
+    notifyRenderer('keypress', action);
   });
 
   // Listen for mouse click events
