@@ -83,6 +83,9 @@ function validateSettings(settings) {
   if (typeof validated.visibleOnAllWorkspaces !== 'boolean') {
     validated.visibleOnAllWorkspaces = DEFAULT_SETTINGS.visibleOnAllWorkspaces;
   }
+  if (typeof validated.overlayAboveFullscreen !== 'boolean') {
+    validated.overlayAboveFullscreen = DEFAULT_SETTINGS.overlayAboveFullscreen;
+  }
 
   return validated;
 }

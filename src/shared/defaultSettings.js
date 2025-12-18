@@ -38,6 +38,9 @@ const DEFAULT_SETTINGS = {
   // Show overlay on all virtual desktops/workspaces (macOS Spaces, Linux workspaces)
   visibleOnAllWorkspaces: true,
 
+  // Best-effort: stay above full-screen apps (macOS has reliable support)
+  overlayAboveFullscreen: typeof process !== 'undefined' ? process.platform === 'darwin' : false,
+
   // Draggable when click-through is off
   draggableWhenNotClickThrough: true,
 

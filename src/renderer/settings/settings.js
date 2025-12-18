@@ -23,6 +23,8 @@ const resetBtn = document.getElementById('reset-btn');
 const resetPositionBtn = document.getElementById('reset-position-btn');
 const visibleAllWorkspaces = document.getElementById('visible-all-workspaces');
 const workspaceHint = document.getElementById('workspace-hint');
+const overlayAboveFullscreen = document.getElementById('overlay-above-fullscreen');
+const fullscreenHint = document.getElementById('fullscreen-hint');
 
 /**
  * Load current settings into form
@@ -63,10 +65,16 @@ async function loadSettings() {
     // Workspace visibility
     visibleAllWorkspaces.checked = settings.visibleOnAllWorkspaces !== false;
     
-    // Disable on Windows
+    // Overlay above fullscreen
+    overlayAboveFullscreen.checked = settings.overlayAboveFullscreen ?? false;
+    
+    // Disable on Windows with appropriate messages
     if (navigator.platform.includes('Win')) {
       visibleAllWorkspaces.disabled = true;
       workspaceHint.style.display = 'block';
+      
+      overlayAboveFullscreen.disabled = true;
+      fullscreenHint.textContent = 'Windows: overlays over exclusive fullscreen aren\'t reliable in Electron.';
     }
     
     console.log('📋 Settings loaded');
@@ -238,6 +246,18 @@ visibleAllWorkspaces.addEventListener('change', async () => {
   }
 });
 
+// Overlay above fullscreen - apply immediately on change
+overlayAboveFullscreen.addEventListener('change', async () => {
+  try {
+    await window.electronAPI.saveSettings({
+      overlayAboveFullscreen: overlayAboveFullscreen.checked,
+    });
+    console.log(`🖥️ Overlay above fullscreen: ${overlayAboveFullscreen.checked}`);
+  } catch (error) {
+    console.error('Failed to update overlay above fullscreen:', error);
+  }
+});
+
 // Listen for settings changes from main process (e.g., when overlay is dragged)
 if (window.electronAPI?.onSettingsChanged) {
   window.electronAPI.onSettingsChanged((settings) => {
@@ -257,6 +277,11 @@ if (window.electronAPI?.onSettingsChanged) {
     // Update workspace visibility if changed
     if (settings.visibleOnAllWorkspaces !== undefined) {
       visibleAllWorkspaces.checked = settings.visibleOnAllWorkspaces;
+    }
+    
+    // Update overlay above fullscreen if changed
+    if (settings.overlayAboveFullscreen !== undefined) {
+      overlayAboveFullscreen.checked = settings.overlayAboveFullscreen;
     }
   });
 }

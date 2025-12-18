@@ -175,8 +175,8 @@ function createOverlayWindow(settings = DEFAULT_SETTINGS) {
   const clickThroughEnabled = settings.clickThroughEnabled ?? true;
   setClickThrough(overlayWindow, clickThroughEnabled);
 
-  // Apply workspace visibility setting
-  applyWorkspaceVisibility(overlayWindow, settings);
+  // Apply fullscreen overlay policy (handles both workspace visibility and fullscreen behavior)
+  applyFullscreenOverlayPolicy(overlayWindow, settings);
 
   return overlayWindow;
 }
@@ -238,40 +238,69 @@ function setOverlayOpacity(opacity) {
 }
 
 /**
- * Apply workspace visibility setting to overlay window
- * Controls whether overlay appears on all virtual desktops (macOS Spaces, Linux workspaces)
+ * Apply fullscreen overlay policy
+ * Best-effort attempt to keep overlay visible over full-screen apps
+ * Unifies visibleOnAllWorkspaces and overlayAboveFullscreen settings
+ * 
+ * Flow: settings change → applyFullscreenOverlayPolicy → setAlwaysOnTop + visibleOnAllWorkspaces
+ * 
+ * Known limitations:
+ * - Exclusive full-screen games may still cover the overlay
+ * - Linux behavior depends on compositor (Wayland vs X11)
+ * - Windows: not reliable in Electron
+ * 
  * @param {BrowserWindow} win - The overlay window
- * @param {object} settings - Settings containing visibleOnAllWorkspaces
+ * @param {object} settings - Settings object
  */
-function applyWorkspaceVisibility(win, settings) {
+function applyFullscreenOverlayPolicy(win, settings) {
   if (!win || win.isDestroyed()) {
     return;
   }
 
-  const visible = settings.visibleOnAllWorkspaces ?? true;
+  const aboveFullscreen = settings.overlayAboveFullscreen ?? false;
+  const visibleAllWs = settings.visibleOnAllWorkspaces ?? true;
   const platform = process.platform;
 
   if (platform === 'win32') {
-    console.log('⚠️ visibleOnAllWorkspaces not supported on Windows');
+    console.log('⚠️ overlayAboveFullscreen not reliable on Windows');
+    // Still set always-on-top but don't promise fullscreen behavior
+    win.setAlwaysOnTop(true, 'screen-saver');
     return;
   }
 
-  if (visible) {
-    if (platform === 'darwin') {
-      // visibleOnFullScreen: ensures overlay stays visible over full-screen apps
-      // skipTransformProcessType: prevents dock icon flickering
-      win.setVisibleOnAllWorkspaces(true, {
+  if (platform === 'darwin') {
+    if (aboveFullscreen) {
+      // Use screen-saver level for highest z-order
+      win.setAlwaysOnTop(true, 'screen-saver');
+      // Ensure visible on fullscreen spaces
+      win.setVisibleOnAllWorkspaces(visibleAllWs, {
         visibleOnFullScreen: true,
         skipTransformProcessType: true,
       });
+      console.log('🖥️ macOS: overlay above fullscreen enabled (screen-saver level)');
     } else {
-      // Linux - no extra options needed
-      win.setVisibleOnAllWorkspaces(true);
+      // Normal floating level
+      win.setAlwaysOnTop(true, 'floating');
+      win.setVisibleOnAllWorkspaces(visibleAllWs, {
+        visibleOnFullScreen: false,
+        skipTransformProcessType: true,
+      });
+      console.log('🖥️ macOS: overlay above fullscreen disabled (floating level)');
     }
-    console.log('🖥️ Overlay visible on all workspaces');
+    return;
+  }
+
+  // Linux
+  win.setAlwaysOnTop(true);
+  if (visibleAllWs) {
+    win.setVisibleOnAllWorkspaces(true);
   } else {
     win.setVisibleOnAllWorkspaces(false);
-    console.log('🖥️ Overlay visible on current workspace only');
+  }
+  if (aboveFullscreen) {
+    console.log('🖥️ Linux: overlay above fullscreen (best-effort, depends on compositor: Wayland/X11)');
+  } else {
+    console.log('🖥️ Linux: normal always-on-top');
   }
 }
 
@@ -285,5 +314,5 @@ module.exports = {
   computeOverlayBounds,
   applyOverlayBounds,
   setOverlayOpacity,
-  applyWorkspaceVisibility,
+  applyFullscreenOverlayPolicy,
 };
