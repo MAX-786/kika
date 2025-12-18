@@ -296,6 +296,27 @@ function applySettings(settings, stateMachine) {
 
   // Apply drag behavior
   applyDragBehavior(settings);
+  
+  // Apply Animation Settings
+  if (settings.animation && stateMachine) {
+      if (settings.animation.idleFps) {
+          const idleAnim = stateMachine.animations.get('idle');
+          if (idleAnim && idleAnim.fps !== settings.animation.idleFps) {
+              idleAnim.fps = settings.animation.idleFps;
+              idleAnim.frameDuration = 1000 / idleAnim.fps;
+              console.log(`⏱ Updated idle FPS to ${idleAnim.fps}`);
+          }
+      }
+      
+      if (settings.animation.hitFps) {
+          const hitAnim = stateMachine.animations.get('hit');
+          if (hitAnim && hitAnim.fps !== settings.animation.hitFps) {
+              hitAnim.fps = settings.animation.hitFps;
+              hitAnim.frameDuration = 1000 / hitAnim.fps;
+              console.log(`⏱ Updated hit FPS to ${hitAnim.fps}`);
+          }
+      }
+  }
 
   // Log applied settings
   console.log(`🖱️ Click-through: ${settings.clickThroughEnabled}`);

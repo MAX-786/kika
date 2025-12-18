@@ -25,15 +25,10 @@ const DEFAULT_SETTINGS = {
     y: 0, // Used when mode is 'free'
   },
 
-  // Size settings
-  size: {
-    scale: 1.5,
-  },
-
   // Window dimensions (internal)
   window: {
-    width: 600,
-    height: 400,
+    width: 128,
+    height: 128,
     paddingFromEdge: 20,
   },
 

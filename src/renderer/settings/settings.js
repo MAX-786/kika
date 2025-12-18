@@ -13,6 +13,12 @@ const ignoreModifiers = document.getElementById('ignore-modifiers');
 const clickThrough = document.getElementById('click-through');
 const positionX = document.getElementById('position-x');
 const positionY = document.getElementById('position-y');
+const opacityInput = document.getElementById('opacity');
+const opacityValue = document.getElementById('opacity-value');
+const idleFpsInput = document.getElementById('idle-fps');
+const idleFpsValue = document.getElementById('idle-fps-value');
+const hitFpsInput = document.getElementById('hit-fps');
+const hitFpsValue = document.getElementById('hit-fps-value');
 const resetBtn = document.getElementById('reset-btn');
 const resetPositionBtn = document.getElementById('reset-position-btn');
 
@@ -27,7 +33,20 @@ async function loadSettings() {
     windowWidth.value = settings.window?.width || 600;
     windowHeight.value = settings.window?.height || 400;
     paddingBottom.value = settings.window?.paddingBottom || 20;
+
+    // Appearance
+    const opacity = settings.opacity !== undefined ? settings.opacity : 1.0;
+    opacityInput.value = opacity;
+    opacityValue.textContent = Math.round(opacity * 100) + '%';
     
+    // Animation
+    if (settings.animation) {
+        idleFpsInput.value = settings.animation.idleFps || 8;
+        idleFpsValue.textContent = idleFpsInput.value;
+        hitFpsInput.value = settings.animation.hitFps || 12;
+        hitFpsValue.textContent = hitFpsInput.value;
+    }
+
     // Input hooks
     hooksEnabled.checked = settings.inputHooks?.enabled !== false;
     ignoreModifiers.checked = settings.inputHooks?.ignoreModifierKeys !== false;
@@ -60,6 +79,11 @@ function getFormSettings() {
       ignoreModifierKeys: ignoreModifiers.checked,
     },
     clickThroughEnabled: clickThrough.checked,
+    opacity: parseFloat(opacityInput.value),
+    animation: {
+      idleFps: parseInt(idleFpsInput.value, 10),
+      hitFps: parseInt(hitFpsInput.value, 10),
+    },
   };
 }
 
@@ -176,6 +200,20 @@ async function updatePositionLive() {
 // Live position update on input change
 positionX.addEventListener('change', updatePositionLive);
 positionY.addEventListener('change', updatePositionLive);
+
+// Opacity value update
+opacityInput.addEventListener('input', () => {
+    opacityValue.textContent = Math.round(opacityInput.value * 100) + '%';
+});
+
+// Animation value updates
+idleFpsInput.addEventListener('input', () => {
+    idleFpsValue.textContent = idleFpsInput.value;
+});
+
+hitFpsInput.addEventListener('input', () => {
+    hitFpsValue.textContent = hitFpsInput.value;
+});
 
 // Listen for settings changes from main process (e.g., when overlay is dragged)
 if (window.electronAPI?.onSettingsChanged) {

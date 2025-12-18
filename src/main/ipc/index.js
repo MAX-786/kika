@@ -11,6 +11,7 @@ const {
   enableOverlayClickThrough,
   disableOverlayClickThrough,
   repositionOverlay,
+  setOverlayOpacity,
 } = require('../windows/overlayWindow');
 const { showSettingsWindow, closeSettingsWindow, getSettingsWindow } = require('../windows/settingsWindow');
 const {
@@ -128,6 +129,11 @@ function registerIPCHandlers() {
       // Apply click-through immediately
       setClickThrough(overlayWindow, updatedSettings.clickThroughEnabled);
 
+      // Apply Opacity
+      if (updatedSettings.opacity !== undefined) {
+        setOverlayOpacity(updatedSettings.opacity);
+      }
+
       // Reposition overlay with new settings (size/position changes)
       repositionOverlay(updatedSettings);
     }
@@ -148,6 +154,11 @@ function registerIPCHandlers() {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       // Apply click-through immediately
       setClickThrough(overlayWindow, updatedSettings.clickThroughEnabled ?? true);
+
+      // Apply Opacity
+      if (updatedSettings.opacity !== undefined) {
+        setOverlayOpacity(updatedSettings.opacity);
+      }
 
       // Reposition overlay with new settings (size/position/scale changes)
       repositionOverlay(updatedSettings);

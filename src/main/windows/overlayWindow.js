@@ -137,6 +137,7 @@ function createOverlayWindow(settings = DEFAULT_SETTINGS) {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
+    opacity: settings.opacity !== undefined ? settings.opacity : 1.0,
 
     // Always on top of other windows
     alwaysOnTop: true,
@@ -222,6 +223,17 @@ function disableOverlayClickThrough() {
   overlayWindow.setIgnoreMouseEvents(false);
 }
 
+/**
+ * Set overlay opacity
+ * @param {number} opacity - 0.0 to 1.0
+ */
+function setOverlayOpacity(opacity) {
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
+    return;
+  }
+  overlayWindow.setOpacity(opacity);
+}
+
 module.exports = {
   createOverlayWindow,
   getOverlayWindow,
@@ -231,4 +243,5 @@ module.exports = {
   disableOverlayClickThrough,
   computeOverlayBounds,
   applyOverlayBounds,
+  setOverlayOpacity,
 };
