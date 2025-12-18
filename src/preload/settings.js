@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('reset-settings');
   },
 
+  // Reset position to bottom center with scale 1.0
+  resetPosition: () => {
+    return ipcRenderer.invoke('overlay:resetPosition');
+  },
+
   // Close settings window
   closeSettings: () => {
     ipcRenderer.send('close-settings-window');

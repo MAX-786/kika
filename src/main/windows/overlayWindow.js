@@ -5,10 +5,99 @@
 
 const { BrowserWindow, screen, Menu, app } = require('electron');
 const path = require('node:path');
-const { PLATFORM_CONFIG, DEFAULT_SETTINGS } = require('../../shared/defaultSettings');
+const { PLATFORM_CONFIG, DEFAULT_SETTINGS, POSITION_PRESETS } = require('../../shared/defaultSettings');
 
 const isProd = app.isPackaged;
 let overlayWindow = null;
+
+// Base overlay dimensions (before scaling)
+const BASE_WIDTH = 600;
+const BASE_HEIGHT = 400;
+
+/**
+ * Clamp a value between min and max
+ * @param {number} value - Value to clamp
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Clamped value
+ */
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Compute overlay bounds based on settings and screen info
+ * @param {object} settings - Settings object with position and size
+ * @param {object} screenInfo - Screen info from screen.getPrimaryDisplay()
+ * @returns {{ x: number, y: number, width: number, height: number }}
+ */
+function computeOverlayBounds(settings, screenInfo) {
+  const { width: screenWidth, height: screenHeight } = screenInfo.workAreaSize;
+  const padding = settings.window?.paddingFromEdge ?? DEFAULT_SETTINGS.window.paddingFromEdge;
+
+  // Get base dimensions from settings (or use defaults)
+  const baseWidth = settings.window?.width ?? BASE_WIDTH;
+  const baseHeight = settings.window?.height ?? BASE_HEIGHT;
+
+  // Calculate scaled dimensions (clamp scale between 0.5 and 2.0)
+  const scale = clamp(settings.size?.scale ?? 1.0, 0.5, 2.0);
+  const width = Math.round(baseWidth * scale);
+  const height = Math.round(baseHeight * scale);
+
+  let x, y;
+
+  if (settings.position?.mode === 'free') {
+    // Free mode: use stored x/y coordinates
+    x = settings.position?.x ?? 0;
+    y = settings.position?.y ?? 0;
+  } else {
+    // Preset mode: calculate position based on preset
+    const preset = settings.position?.preset ?? POSITION_PRESETS.bottomCenter;
+
+    switch (preset) {
+      case POSITION_PRESETS.bottomCenter:
+        x = Math.round((screenWidth - width) / 2);
+        y = screenHeight - height - padding;
+        break;
+      case POSITION_PRESETS.bottomLeft:
+        x = padding;
+        y = screenHeight - height - padding;
+        break;
+      case POSITION_PRESETS.bottomRight:
+        x = screenWidth - width - padding;
+        y = screenHeight - height - padding;
+        break;
+      case POSITION_PRESETS.topLeft:
+        x = padding;
+        y = padding;
+        break;
+      case POSITION_PRESETS.topRight:
+        x = screenWidth - width - padding;
+        y = padding;
+        break;
+      default:
+        // Default to bottom center
+        x = Math.round((screenWidth - width) / 2);
+        y = screenHeight - height - padding;
+    }
+  }
+
+  return { x, y, width, height };
+}
+
+/**
+ * Apply bounds to the overlay window
+ * @param {BrowserWindow} win - The window to apply bounds to
+ * @param {{ x: number, y: number, width: number, height: number }} bounds - Bounds to apply
+ */
+function applyOverlayBounds(win, bounds) {
+  if (!win || win.isDestroyed()) {
+    return;
+  }
+
+  win.setPosition(bounds.x, bounds.y);
+  win.setSize(bounds.width, bounds.height);
+}
 
 /**
  * Enables or disables click-through for the overlay window
@@ -33,24 +122,16 @@ function setClickThrough(window, clickThrough) {
  */
 function createOverlayWindow(settings = DEFAULT_SETTINGS) {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-
-  const windowWidth = settings.window?.width || DEFAULT_SETTINGS.window.width;
-  const windowHeight = settings.window?.height || DEFAULT_SETTINGS.window.height;
-  const paddingBottom = settings.window?.paddingBottom || DEFAULT_SETTINGS.window.paddingBottom;
-
-  // Calculate position for bottom center
-  const x = Math.round((screenWidth - windowWidth) / 2);
-  const y = screenHeight - windowHeight - paddingBottom;
+  const bounds = computeOverlayBounds(settings, primaryDisplay);
 
   const platform = process.platform;
   const config = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.linux;
 
   overlayWindow = new BrowserWindow({
-    width: windowWidth,
-    height: windowHeight,
-    x,
-    y,
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
 
     // Frameless & transparent overlay settings
     frame: false,
@@ -105,7 +186,7 @@ function getOverlayWindow() {
 }
 
 /**
- * Reposition the overlay window to bottom center
+ * Reposition the overlay window based on current settings
  * @param {object} settings - Settings object
  */
 function repositionOverlay(settings = DEFAULT_SETTINGS) {
@@ -114,17 +195,8 @@ function repositionOverlay(settings = DEFAULT_SETTINGS) {
   }
 
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-
-  const windowWidth = settings.window?.width || DEFAULT_SETTINGS.window.width;
-  const windowHeight = settings.window?.height || DEFAULT_SETTINGS.window.height;
-  const paddingBottom = settings.window?.paddingBottom || DEFAULT_SETTINGS.window.paddingBottom;
-
-  const x = Math.round((screenWidth - windowWidth) / 2);
-  const y = screenHeight - windowHeight - paddingBottom;
-
-  overlayWindow.setPosition(x, y);
-  overlayWindow.setSize(windowWidth, windowHeight);
+  const bounds = computeOverlayBounds(settings, primaryDisplay);
+  applyOverlayBounds(overlayWindow, bounds);
 }
 
 /**
@@ -157,4 +229,6 @@ module.exports = {
   repositionOverlay,
   enableOverlayClickThrough,
   disableOverlayClickThrough,
+  computeOverlayBounds,
+  applyOverlayBounds,
 };

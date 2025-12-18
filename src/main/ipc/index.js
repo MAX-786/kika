@@ -10,6 +10,7 @@ const {
   setClickThrough,
   enableOverlayClickThrough,
   disableOverlayClickThrough,
+  repositionOverlay,
 } = require('../windows/overlayWindow');
 const { showSettingsWindow, closeSettingsWindow } = require('../windows/settingsWindow');
 const {
@@ -127,6 +128,9 @@ function registerIPCHandlers() {
 
       // Apply click-through immediately
       setClickThrough(overlayWindow, updatedSettings.clickThroughEnabled);
+
+      // Reposition overlay with new settings (size/position changes)
+      repositionOverlay(updatedSettings);
     }
 
     return updatedSettings;
@@ -142,7 +146,15 @@ function registerIPCHandlers() {
     if (success) {
       const overlayWindow = getOverlayWindow();
       if (overlayWindow && !overlayWindow.isDestroyed()) {
+        // Apply click-through immediately
         setClickThrough(overlayWindow, settings.clickThroughEnabled ?? true);
+
+        // Reposition overlay with new settings (size/position/scale changes)
+        const currentSettings = getSettings();
+        repositionOverlay(currentSettings);
+
+        // Broadcast settings:changed to overlay renderer
+        overlayWindow.webContents.send('settings:changed', currentSettings);
       }
     }
     return success;
@@ -185,6 +197,30 @@ function registerIPCHandlers() {
   // Input count reset
   ipcMain.on('reset-input-count', () => {
     totalInputs = 0;
+  });
+
+  // Reset overlay position to bottom center with scale 1.0
+  ipcMain.handle('overlay:resetPosition', () => {
+    const resetPositionSettings = {
+      position: {
+        mode: 'preset',
+        preset: 'bottomCenter',
+      },
+      size: {
+        scale: 1.0,
+      },
+    };
+
+    const updatedSettings = updateSettings(resetPositionSettings);
+
+    // Apply changes immediately
+    const overlayWindow = getOverlayWindow();
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      repositionOverlay(updatedSettings);
+      overlayWindow.webContents.send('settings:changed', updatedSettings);
+    }
+
+    return updatedSettings;
   });
 
   console.log('📡 IPC handlers registered');

@@ -14,6 +14,7 @@ const hooksEnabled = document.getElementById('hooks-enabled');
 const ignoreModifiers = document.getElementById('ignore-modifiers');
 const clickThrough = document.getElementById('click-through');
 const resetBtn = document.getElementById('reset-btn');
+const resetPositionBtn = document.getElementById('reset-position-btn');
 
 /**
  * Load current settings into form
@@ -130,6 +131,37 @@ form.addEventListener('submit', (e) => {
 
 resetBtn.addEventListener('click', () => {
   resetSettings();
+});
+
+/**
+ * Reset overlay position to bottom center with scale 1.0
+ */
+async function resetPosition() {
+  try {
+    await window.electronAPI.resetPosition();
+    
+    // Update scale slider to show 1.0
+    scaleSlider.value = 1.0;
+    scaleValue.textContent = '1.0x';
+    
+    // Show success feedback
+    const originalText = resetPositionBtn.textContent;
+    resetPositionBtn.textContent = '✓ Reset!';
+    resetPositionBtn.disabled = true;
+    
+    setTimeout(() => {
+      resetPositionBtn.textContent = originalText;
+      resetPositionBtn.disabled = false;
+    }, 1500);
+    
+    console.log('📍 Position reset to bottom center');
+  } catch (error) {
+    console.error('Failed to reset position:', error);
+  }
+}
+
+resetPositionBtn.addEventListener('click', () => {
+  resetPosition();
 });
 
 // Initialize
