@@ -2,7 +2,7 @@
 
 > A playful, interactive desktop overlay character that reacts to your keyboard and mouse input.
 
-![Kika Demo](../assets//demo.mov)
+![Kika Demo](../assets//demo.gif)
 
 ## Features
 
