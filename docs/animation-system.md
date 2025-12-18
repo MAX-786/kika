@@ -11,13 +11,13 @@ Animations are defined in `ANIMATION_CONFIG` at the top of `renderer.js`:
 ```javascript
 const ANIMATION_CONFIG = {
   idle: {
-    src: './assets/cat_idle.png',
+    src: './assets/kika_idle.png',
     frameCount: 4,
     fps: 8,
     loop: true,
   },
   hit: {
-    src: './assets/cat_hit.png',
+    src: './assets/kika_hit.png',
     frameCount: 4,
     fps: 12,
     loop: false,
@@ -40,7 +40,7 @@ const ANIMATION_CONFIG = {
 2. Add configuration entry:
    ```javascript
    sleep: {
-     src: './assets/cat_sleep.png',
+     src: './assets/kika_sleep.png',
      frameCount: 6,
      fps: 4,
      loop: true,

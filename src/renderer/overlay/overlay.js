@@ -8,13 +8,13 @@
 // ============================================
 const ANIMATION_CONFIG = {
   idle: {
-    src: '../../../assets/cat_idle.png',
+    src: '../../../assets/kika_idle.png',
     frameCount: 4,
     fps: 8,
     loop: true,
   },
   hit: {
-    src: '../../../assets/cat_hit.png',
+    src: '../../../assets/kika_hit.png',
     frameCount: 4,
     fps: 12,
     loop: false, // Play once, then return to idle
@@ -194,10 +194,10 @@ async function loadAnimations(config) {
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-  const canvas = document.getElementById('cat-sprite');
+  const canvas = document.getElementById('kika-sprite');
 
   if (!canvas) {
-    console.error('Canvas element #cat-sprite not found');
+    console.error('Canvas element #kika-sprite not found');
     return;
   }
 

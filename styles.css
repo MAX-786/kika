@@ -29,7 +29,7 @@ body {
  * Position the sprite canvas at the bottom center of the overlay window.
  * Uses absolute positioning to anchor to the bottom edge.
  */
-#cat-sprite {
+#kika-sprite {
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -47,7 +47,7 @@ body {
  * Remove this if you want full click-through everywhere.
  */
 /*
-#cat-sprite {
+#kika-sprite {
   -webkit-app-region: drag;
   app-region: drag;
 }
