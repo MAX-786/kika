@@ -12,10 +12,9 @@ const {
   disableOverlayClickThrough,
   repositionOverlay,
 } = require('../windows/overlayWindow');
-const { showSettingsWindow, closeSettingsWindow } = require('../windows/settingsWindow');
+const { showSettingsWindow, closeSettingsWindow, getSettingsWindow } = require('../windows/settingsWindow');
 const {
   getSettings,
-  saveSettings,
   updateSettings,
   resetSettings,
 } = require('../../shared/settingsStore');
@@ -142,22 +141,27 @@ function registerIPCHandlers() {
   });
 
   ipcMain.handle('save-settings', (_event, settings) => {
-    const success = saveSettings(settings);
-    if (success) {
-      const overlayWindow = getOverlayWindow();
-      if (overlayWindow && !overlayWindow.isDestroyed()) {
-        // Apply click-through immediately
-        setClickThrough(overlayWindow, settings.clickThroughEnabled ?? true);
+    // Use updateSettings to MERGE with existing settings (preserves position, etc.)
+    const updatedSettings = updateSettings(settings);
+    
+    const overlayWindow = getOverlayWindow();
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      // Apply click-through immediately
+      setClickThrough(overlayWindow, updatedSettings.clickThroughEnabled ?? true);
 
-        // Reposition overlay with new settings (size/position/scale changes)
-        const currentSettings = getSettings();
-        repositionOverlay(currentSettings);
+      // Reposition overlay with new settings (size/position/scale changes)
+      repositionOverlay(updatedSettings);
 
-        // Broadcast settings:changed to overlay renderer
-        overlayWindow.webContents.send('settings:changed', currentSettings);
+      // Broadcast settings:changed to overlay renderer
+      overlayWindow.webContents.send('settings:changed', updatedSettings);
+
+      // Broadcast to settings window for sync
+      const settingsWindow = getSettingsWindow();
+      if (settingsWindow && !settingsWindow.isDestroyed()) {
+        settingsWindow.webContents.send('settings:changed', updatedSettings);
       }
     }
-    return success;
+    return updatedSettings;
   });
 
   ipcMain.handle('reset-settings', () => {
@@ -230,14 +234,6 @@ function registerIPCHandlers() {
       return;
     }
 
-    const settings = getSettings();
-
-    // Don't save position if locked
-    if (settings.locked) {
-      console.log('🔒 Drag ignored - overlay is locked');
-      return;
-    }
-
     // Get current window bounds and save to free mode
     const bounds = overlayWindow.getBounds();
     const updatedSettings = updateSettings({
@@ -250,8 +246,14 @@ function registerIPCHandlers() {
 
     console.log(`📍 Position saved: (${bounds.x}, ${bounds.y})`);
 
-    // Broadcast updated settings to renderer
+    // Broadcast updated settings to overlay renderer
     overlayWindow.webContents.send('settings:changed', updatedSettings);
+
+    // Broadcast to settings window if open
+    const settingsWindow = getSettingsWindow();
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send('settings:changed', updatedSettings);
+    }
   });
 
   console.log('📡 IPC handlers registered');

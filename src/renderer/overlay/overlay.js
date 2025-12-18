@@ -103,9 +103,7 @@ class AnimationStateMachine {
     this.frameIndex = 0;
     this.lastFrameTime = performance.now();
     this.pendingState = options.onComplete || null;
-
-    this.canvas.width = animation.frameWidth * this.scale;
-    this.canvas.height = animation.frameHeight * this.scale;
+    // Canvas size is controlled by settings (window.width/height), not animation frames
   }
 
   update(timestamp) {
@@ -284,15 +282,16 @@ function applySettings(settings, stateMachine) {
     return;
   }
 
-  // Apply scale
-  if (settings.size?.scale && stateMachine) {
-    stateMachine.scale = settings.size.scale;
-    // Re-render with new scale if animation is loaded
-    if (stateMachine.currentAnimation?.isLoaded) {
-      stateMachine.canvas.width = stateMachine.currentAnimation.frameWidth * settings.size.scale;
-      stateMachine.canvas.height = stateMachine.currentAnimation.frameHeight * settings.size.scale;
-    }
-    console.log(`📐 Applied scale: ${settings.size.scale}`);
+  // Apply canvas size based on window dimensions
+  // Sprite will stretch/squeeze to fill the canvas
+  if (settings.window && stateMachine) {
+    const width = settings.window.width || 600;
+    const height = settings.window.height || 400;
+    
+    stateMachine.canvas.width = width;
+    stateMachine.canvas.height = height;
+    
+    console.log(`📐 Canvas sized to: ${width}x${height}`);
   }
 
   // Apply drag behavior

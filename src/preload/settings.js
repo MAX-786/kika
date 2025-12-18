@@ -32,4 +32,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeSettings: () => {
     ipcRenderer.send('close-settings-window');
   },
+
+  // Listen for settings changes from main process
+  onSettingsChanged: (callback) => {
+    ipcRenderer.on('settings:changed', (_event, settings) => callback(settings));
+  },
 });

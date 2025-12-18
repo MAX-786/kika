@@ -5,8 +5,6 @@
 
 // DOM Elements
 const form = document.getElementById('settings-form');
-const scaleSlider = document.getElementById('animation-scale');
-const scaleValue = document.getElementById('scale-value');
 const windowWidth = document.getElementById('window-width');
 const windowHeight = document.getElementById('window-height');
 const paddingBottom = document.getElementById('padding-bottom');
@@ -24,10 +22,6 @@ const resetPositionBtn = document.getElementById('reset-position-btn');
 async function loadSettings() {
   try {
     const settings = await window.electronAPI.getSettings();
-    
-    // Animation
-    scaleSlider.value = settings.animation?.scale || 1.5;
-    scaleValue.textContent = `${scaleSlider.value}x`;
     
     // Window
     windowWidth.value = settings.window?.width || 600;
@@ -56,11 +50,6 @@ async function loadSettings() {
  */
 function getFormSettings() {
   return {
-    animation: {
-      scale: parseFloat(scaleSlider.value),
-      idleFps: 8,
-      hitFps: 12,
-    },
     window: {
       width: parseInt(windowWidth.value, 10),
       height: parseInt(windowHeight.value, 10),
@@ -108,8 +97,6 @@ async function resetSettings() {
     const settings = await window.electronAPI.resetSettings();
     
     // Reload form with default values
-    scaleSlider.value = settings.animation?.scale || 1.5;
-    scaleValue.textContent = `${scaleSlider.value}x`;
     windowWidth.value = settings.window?.width || 600;
     windowHeight.value = settings.window?.height || 400;
     paddingBottom.value = settings.window?.paddingBottom || 20;
@@ -124,10 +111,6 @@ async function resetSettings() {
 }
 
 // Event listeners
-scaleSlider.addEventListener('input', () => {
-  scaleValue.textContent = `${scaleSlider.value}x`;
-});
-
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   saveSettings();
@@ -143,10 +126,6 @@ resetBtn.addEventListener('click', () => {
 async function resetPosition() {
   try {
     const settings = await window.electronAPI.resetPosition();
-    
-    // Update scale slider to show 1.0
-    scaleSlider.value = 1.0;
-    scaleValue.textContent = '1.0x';
     
     // Update position inputs
     positionX.value = settings?.position?.x || 0;
@@ -197,6 +176,24 @@ async function updatePositionLive() {
 // Live position update on input change
 positionX.addEventListener('change', updatePositionLive);
 positionY.addEventListener('change', updatePositionLive);
+
+// Listen for settings changes from main process (e.g., when overlay is dragged)
+if (window.electronAPI?.onSettingsChanged) {
+  window.electronAPI.onSettingsChanged((settings) => {
+    console.log('📡 Settings changed externally:', settings);
+    
+    // Update position inputs to stay in sync
+    if (settings.position) {
+      positionX.value = settings.position.x || 0;
+      positionY.value = settings.position.y || 0;
+    }
+    
+    // Update click-through if changed
+    if (settings.clickThroughEnabled !== undefined) {
+      clickThrough.checked = settings.clickThroughEnabled !== false;
+    }
+  });
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', loadSettings);

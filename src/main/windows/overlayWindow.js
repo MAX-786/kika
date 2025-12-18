@@ -171,7 +171,7 @@ function createOverlayWindow(settings = DEFAULT_SETTINGS) {
   overlayWindow.setAlwaysOnTop(true, config.windowLevel);
 
   // Enable click-through based on settings
-  const clickThroughEnabled = settings.clickThrough?.enabled ?? true;
+  const clickThroughEnabled = settings.clickThroughEnabled ?? true;
   setClickThrough(overlayWindow, clickThroughEnabled);
 
   return overlayWindow;
