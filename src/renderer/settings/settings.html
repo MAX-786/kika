@@ -120,6 +120,48 @@
                 </p>
             </section>
 
+            <section class="setting-group">
+                <h2>Custom Character</h2>
+
+                <div class="setting-row">
+                    <label>Character Pack</label>
+                    <div class="radio-group">
+                        <input type="radio" id="pack-default" name="character-pack" value="default" checked />
+                        <label for="pack-default">Default</label>
+                        <input type="radio" id="pack-custom" name="character-pack" value="custom" />
+                        <label for="pack-custom">Custom</label>
+                    </div>
+                </div>
+
+                <div class="upload-rows">
+                    <div class="setting-row upload-row">
+                        <label>Idle</label>
+                        <button type="button" class="btn upload-btn" data-animation="idle">Upload PNG</button>
+                        <span class="upload-status" data-animation="idle">Not uploaded</span>
+                    </div>
+                    <div class="setting-row upload-row">
+                        <label>Hit Left</label>
+                        <button type="button" class="btn upload-btn" data-animation="hitLeft">Upload PNG</button>
+                        <span class="upload-status" data-animation="hitLeft">Not uploaded</span>
+                    </div>
+                    <div class="setting-row upload-row">
+                        <label>Hit Right</label>
+                        <button type="button" class="btn upload-btn" data-animation="hitRight">Upload PNG</button>
+                        <span class="upload-status" data-animation="hitRight">Not uploaded</span>
+                    </div>
+                    <div class="setting-row upload-row">
+                        <label>Hit Both</label>
+                        <button type="button" class="btn upload-btn" data-animation="hitBoth">Upload PNG</button>
+                        <span class="upload-status" data-animation="hitBoth">Not uploaded</span>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <button type="button" id="reset-custom-btn" class="btn secondary">Reset Custom Character</button>
+                </div>
+                <p class="setting-hint">Upload 4-frame horizontal sprite sheets (PNG only)</p>
+            </section>
+
             <div class="button-row">
                 <button type="button" id="reset-btn" class="btn secondary">Reset to Defaults</button>
                 <button type="submit" class="btn primary">Save</button>

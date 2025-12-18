@@ -61,4 +61,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   notifyDragEnd: () => {
     ipcRenderer.send('overlay:dragEnd');
   },
+
+  // Get animation asset as data URL (for sprite loading)
+  getAnimationAsset: (animationKey) => {
+    return ipcRenderer.invoke('character:getAnimationAsset', { animationKey });
+  },
 });

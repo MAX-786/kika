@@ -26,6 +26,12 @@ const workspaceHint = document.getElementById('workspace-hint');
 const overlayAboveFullscreen = document.getElementById('overlay-above-fullscreen');
 const fullscreenHint = document.getElementById('fullscreen-hint');
 
+// Custom Character DOM elements
+const packDefaultRadio = document.getElementById('pack-default');
+const packCustomRadio = document.getElementById('pack-custom');
+const uploadButtons = document.querySelectorAll('.upload-btn');
+const resetCustomBtn = document.getElementById('reset-custom-btn');
+
 /**
  * Load current settings into form
  */
@@ -76,6 +82,9 @@ async function loadSettings() {
       overlayAboveFullscreen.disabled = true;
       fullscreenHint.textContent = 'Windows: overlays over exclusive fullscreen aren\'t reliable in Electron.';
     }
+
+    // Character pack settings
+    updateCharacterPackUI(settings);
     
     console.log('📋 Settings loaded');
   } catch (error) {
@@ -283,8 +292,132 @@ if (window.electronAPI?.onSettingsChanged) {
     if (settings.overlayAboveFullscreen !== undefined) {
       overlayAboveFullscreen.checked = settings.overlayAboveFullscreen;
     }
+
+    // Update character pack UI if changed
+    if (settings.activeCharacterPackId !== undefined || settings.characterPacks !== undefined) {
+      updateCharacterPackUI(settings);
+    }
   });
 }
+
+// ============================================
+// CUSTOM CHARACTER PACK
+// ============================================
+
+/**
+ * Update character pack UI elements based on settings
+ */
+function updateCharacterPackUI(settings) {
+  // Update pack radio buttons
+  const packId = settings.activeCharacterPackId || 'default';
+  packDefaultRadio.checked = packId === 'default';
+  packCustomRadio.checked = packId === 'custom';
+
+  // Update upload status indicators
+  const customPack = settings.characterPacks?.custom || {};
+  const animationKeys = ['idle', 'hitLeft', 'hitRight', 'hitBoth'];
+  
+  animationKeys.forEach((key) => {
+    const statusEl = document.querySelector(`.upload-status[data-animation="${key}"]`);
+    if (statusEl) {
+      if (customPack[key]) {
+        statusEl.textContent = '✓ Uploaded';
+        statusEl.classList.add('uploaded');
+        statusEl.classList.remove('not-uploaded');
+      } else {
+        statusEl.textContent = 'Not uploaded';
+        statusEl.classList.add('not-uploaded');
+        statusEl.classList.remove('uploaded');
+      }
+    }
+  });
+}
+
+// Character pack radio button change handlers
+packDefaultRadio.addEventListener('change', async () => {
+  if (packDefaultRadio.checked) {
+    try {
+      await window.electronAPI.saveSettings({ activeCharacterPackId: 'default' });
+      console.log('🎨 Switched to default character pack');
+    } catch (error) {
+      console.error('Failed to switch pack:', error);
+    }
+  }
+});
+
+packCustomRadio.addEventListener('change', async () => {
+  if (packCustomRadio.checked) {
+    try {
+      await window.electronAPI.saveSettings({ activeCharacterPackId: 'custom' });
+      console.log('🎨 Switched to custom character pack');
+    } catch (error) {
+      console.error('Failed to switch pack:', error);
+    }
+  }
+});
+
+// Upload button click handlers
+uploadButtons.forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const animationKey = btn.dataset.animation;
+
+    btn.disabled = true;
+    btn.textContent = 'Selecting...';
+
+    try {
+      const result = await window.electronAPI.importCharacterPng(animationKey);
+
+      if (result.ok) {
+        console.log(`✓ Uploaded ${animationKey}: ${result.storedAs}`);
+        btn.textContent = 'Upload PNG';
+      } else if (result.error === 'Selection cancelled') {
+        btn.textContent = 'Upload PNG';
+      } else {
+        console.error(`Failed to upload ${animationKey}:`, result.error);
+        btn.textContent = 'Upload PNG';
+        alert(`Upload failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error(`Error uploading ${animationKey}:`, error);
+      btn.textContent = 'Upload PNG';
+      alert(`Error: ${error.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+// Reset custom character button
+resetCustomBtn.addEventListener('click', async () => {
+  if (!confirm('Are you sure you want to reset your custom character? This will delete all uploaded files.')) {
+    return;
+  }
+
+  resetCustomBtn.disabled = true;
+  resetCustomBtn.textContent = 'Resetting...';
+
+  try {
+    const result = await window.electronAPI.resetCustomCharacterPack();
+
+    if (result.ok) {
+      console.log('🗑️ Custom character pack reset');
+      resetCustomBtn.textContent = '✓ Reset!';
+      setTimeout(() => {
+        resetCustomBtn.textContent = 'Reset Custom Character';
+      }, 1500);
+    } else {
+      console.error('Failed to reset:', result.error);
+      resetCustomBtn.textContent = 'Reset Custom Character';
+      alert(`Reset failed: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Error resetting custom pack:', error);
+    resetCustomBtn.textContent = 'Reset Custom Character';
+    alert(`Error: ${error.message}`);
+  } finally {
+    resetCustomBtn.disabled = false;
+  }
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', loadSettings);

@@ -37,4 +37,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSettingsChanged: (callback) => {
     ipcRenderer.on('settings:changed', (_event, settings) => callback(settings));
   },
+
+  // Import a custom character PNG for a specific animation
+  importCharacterPng: (animationKey) => {
+    return ipcRenderer.invoke('character:importPng', { animationKey });
+  },
+
+  // Reset custom character pack (delete files and clear settings)
+  resetCustomCharacterPack: () => {
+    return ipcRenderer.invoke('character:resetCustomPack');
+  },
 });

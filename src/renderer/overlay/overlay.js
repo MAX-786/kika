@@ -6,27 +6,28 @@
 // ============================================
 // ANIMATION CONFIGURATION
 // ============================================
+// Note: src is set dynamically via IPC from active character pack
 const ANIMATION_CONFIG = {
   idle: {
-    src: '../../../assets/kika_idle.png',
+    src: null, // Set dynamically
     frameCount: 4,
     fps: 8,
     loop: true,
   },
   left: {
-    src: '../../../assets/kika_hit_left.png',
+    src: null, // Set dynamically
     frameCount: 4,
     fps: 12,
     loop: false, // Play once, then return to idle
   },
   right: {
-    src: '../../../assets/kika_hit_right.png',
+    src: null, // Set dynamically
     frameCount: 4,
     fps: 12,
     loop: false, // Play once, then return to idle
   },
   both: {
-    src: '../../../assets/kika_hit.png',
+    src: null, // Set dynamically
     frameCount: 4,
     fps: 12,
     loop: false, // Play once, then return to idle
@@ -202,9 +203,31 @@ async function loadAnimations(config) {
   return animations;
 }
 
+/**
+ * Load animation assets from IPC and update config
+ * @returns {Promise<object>} Updated config with data URL sources
+ */
+async function loadAnimationsFromIPC() {
+  console.log('⏳ Loading animation assets via IPC...');
+
+  // Use asset resolver to get data URLs
+  const assets = await window.assetResolver.loadAnimationAssets();
+
+  // Update config with data URLs
+  const updatedConfig = JSON.parse(JSON.stringify(ANIMATION_CONFIG));
+  for (const [stateName, dataUrl] of Object.entries(assets)) {
+    if (updatedConfig[stateName] && dataUrl) {
+      updatedConfig[stateName].src = dataUrl;
+    }
+  }
+
+  return updatedConfig;
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
+
 document.addEventListener('DOMContentLoaded', async () => {
   const canvas = document.getElementById('kika-sprite');
 
@@ -215,7 +238,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     console.log('⏳ Loading animations...');
-    const animations = await loadAnimations(ANIMATION_CONFIG);
+    // Load animation assets via IPC (supports custom packs)
+    const config = await loadAnimationsFromIPC();
+    const animations = await loadAnimations(config);
 
     const stateMachine = new AnimationStateMachine(canvas, animations);
 
@@ -278,12 +303,37 @@ async function initSettings(stateMachine) {
 
   // Listen for settings changes from main process
   if (window.electronAPI?.onSettingsChanged) {
-    window.electronAPI.onSettingsChanged((settings) => {
+    window.electronAPI.onSettingsChanged(async (settings) => {
       console.log('⚙️ Settings changed:', settings);
+      const oldSettings = currentSettings;
       currentSettings = settings;
       applySettings(settings, stateMachine);
+
+      // Check if character pack changed - reload animations
+      if (window.assetResolver?.hasPackChanged(oldSettings, settings)) {
+        console.log('🎨 Character pack changed, reloading animations...');
+        await reloadAnimations(stateMachine);
+      }
     });
     console.log('📡 Listening for settings changes');
+  }
+}
+
+/**
+ * Reload animations with current pack settings
+ */
+async function reloadAnimations(stateMachine) {
+  try {
+    const config = await loadAnimationsFromIPC();
+    const newAnimations = await loadAnimations(config);
+
+    // Update state machine with new animations
+    stateMachine.animations = newAnimations;
+    stateMachine.setState('idle', { force: true });
+
+    console.log('✅ Animations reloaded successfully');
+  } catch (error) {
+    console.error('Failed to reload animations:', error);
   }
 }
 

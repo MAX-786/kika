@@ -87,6 +87,23 @@ function validateSettings(settings) {
     validated.overlayAboveFullscreen = DEFAULT_SETTINGS.overlayAboveFullscreen;
   }
 
+  // Validate character pack settings
+  if (!['default', 'custom'].includes(validated.activeCharacterPackId)) {
+    validated.activeCharacterPackId = DEFAULT_SETTINGS.activeCharacterPackId;
+  }
+
+  // Validate custom character pack metadata
+  if (validated.characterPacks?.custom) {
+    const animationKeys = ['idle', 'hitLeft', 'hitRight', 'hitBoth'];
+    for (const key of animationKeys) {
+      const value = validated.characterPacks.custom[key];
+      // Must be null or a string ending in .png
+      if (value !== null && (typeof value !== 'string' || !value.endsWith('.png'))) {
+        validated.characterPacks.custom[key] = null;
+      }
+    }
+  }
+
   return validated;
 }
 

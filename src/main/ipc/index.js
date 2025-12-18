@@ -1,4 +1,5 @@
-const { ipcMain } = require('electron');
+const { ipcMain, nativeImage } = require('electron');
+const fs = require('node:fs');
 const { uIOhook, UiohookKey } = require('uiohook-napi');
 const {
   getOverlayWindow,
@@ -16,6 +17,8 @@ const {
   resetSettings,
 } = require('../../shared/settingsStore');
 const { DEFAULT_SETTINGS } = require('../../shared/defaultSettings');
+const { importCharacterPng } = require('../characters/importCharacterPng');
+const { getCustomAssetPath, getBundledAssetPath, VALID_ANIMATION_KEYS } = require('../characters/characterPaths');
 
 let totalInputs = 0;
 let inputHooksRunning = false;
@@ -192,6 +195,112 @@ function stopGlobalInputHooks() {
  * Register all IPC handlers
  */
 function registerIPCHandlers() {
+  // ============================================
+  // CHARACTER IMPORT HANDLERS
+  // ============================================
+
+  // Import a custom character PNG for a specific animation
+  ipcMain.handle('character:importPng', async (_event, { animationKey }) => {
+    const result = await importCharacterPng(animationKey);
+
+    // Broadcast settings change if successful
+    if (result.ok) {
+      const updatedSettings = getSettings();
+      const overlayWindow = getOverlayWindow();
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.webContents.send('settings:changed', updatedSettings);
+      }
+      const settingsWindow = getSettingsWindow();
+      if (settingsWindow && !settingsWindow.isDestroyed()) {
+        settingsWindow.webContents.send('settings:changed', updatedSettings);
+      }
+    }
+
+    return result;
+  });
+
+  // Get animation asset as data URL (supports default and custom packs)
+  ipcMain.handle('character:getAnimationAsset', async (_event, { animationKey }) => {
+    if (!VALID_ANIMATION_KEYS.includes(animationKey)) {
+      return { ok: false, error: `Invalid animation key: ${animationKey}` };
+    }
+
+    try {
+      const settings = getSettings();
+      const pack = settings.activeCharacterPackId;
+      let assetPath;
+
+      // Determine asset path based on active pack
+      if (pack === 'custom' && settings.characterPacks?.custom?.[animationKey]) {
+        assetPath = getCustomAssetPath(animationKey);
+        // Fall back to default if custom file doesn't exist
+        if (!fs.existsSync(assetPath)) {
+          console.log(`⚠️ Custom ${animationKey} not found, falling back to default`);
+          assetPath = getBundledAssetPath(animationKey);
+        }
+      } else {
+        assetPath = getBundledAssetPath(animationKey);
+      }
+
+      // Load and convert to data URL
+      const image = nativeImage.createFromPath(assetPath);
+      if (image.isEmpty()) {
+        return { ok: false, error: `Failed to load asset: ${assetPath}` };
+      }
+
+      return { ok: true, dataUrl: image.toDataURL() };
+    } catch (error) {
+      console.error(`Failed to get ${animationKey} asset:`, error);
+      return { ok: false, error: error.message };
+    }
+  });
+
+  // Reset custom character pack (delete files and clear settings)
+  ipcMain.handle('character:resetCustomPack', async () => {
+    try {
+      const { getCustomCharacterDir } = require('../characters/characterPaths');
+      const customDir = getCustomCharacterDir();
+
+      // Delete custom character directory if it exists
+      if (fs.existsSync(customDir)) {
+        fs.rmSync(customDir, { recursive: true });
+        console.log('🗑️ Deleted custom character directory:', customDir);
+      }
+
+      // Reset settings
+      const updatedSettings = updateSettings({
+        activeCharacterPackId: 'default',
+        characterPacks: {
+          custom: {
+            idle: null,
+            hitLeft: null,
+            hitRight: null,
+            hitBoth: null,
+          },
+        },
+      });
+
+      // Broadcast to windows
+      const overlayWindow = getOverlayWindow();
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.webContents.send('settings:changed', updatedSettings);
+      }
+      const settingsWindow = getSettingsWindow();
+      if (settingsWindow && !settingsWindow.isDestroyed()) {
+        settingsWindow.webContents.send('settings:changed', updatedSettings);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      console.error('Failed to reset custom pack:', error);
+      return { ok: false, error: error.message };
+    }
+  });
+
+  // ============================================
+  // SETTINGS HANDLERS
+  // ============================================
+
   // Settings handlers (new pattern)
   ipcMain.handle('settings:getAll', () => {
     return getSettings();

@@ -47,6 +47,15 @@
       "assets/**/*",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "assets/default",
+        "to": "assets/default",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "extraMetadata": {
       "main": "src/main/index.js"
     },

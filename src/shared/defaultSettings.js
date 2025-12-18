@@ -58,6 +58,21 @@ const DEFAULT_SETTINGS = {
     enabled: true,
     ignoreModifierKeys: true,
   },
+
+  // Character pack system
+  // activeCharacterPackId: 'default' uses bundled assets, 'custom' uses user-uploaded
+  activeCharacterPackId: 'default',
+
+  // Character packs metadata
+  // Custom pack stores filenames for each animation stored in <userData>/characters/custom/
+  characterPacks: {
+    custom: {
+      idle: null,      // e.g. 'idle.png' when uploaded
+      hitLeft: null,   // e.g. 'hitLeft.png'
+      hitRight: null,  // e.g. 'hitRight.png'
+      hitBoth: null,   // e.g. 'hitBoth.png'
+    },
+  },
 };
 
 /**
